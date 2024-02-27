@@ -830,7 +830,7 @@ function(input, output, session) {
                            '--cval {new_hisens_c} --purity-cval {new_purity_c} --legacy-output T -e ',
                            '--genome hg19 --directory {refit_dir} '))
 
-    write(refit_cmd, refit_cmd_file)
+    #write(refit_cmd, refit_cmd_file)
     
     showModal(modalDialog(
       title = "Job submitted!", 
@@ -840,6 +840,6 @@ function(input, output, session) {
     values$submitted_refit <- c(values$submitted_refit, refit_dir)
 
     system(refit_cmd, intern = TRUE)
-    
+
   })
 }
