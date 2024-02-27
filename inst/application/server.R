@@ -55,35 +55,6 @@ function(input, output, session) {
     shinyjs::html("element_facets_qc_version1", paste0('facets qc version: ', facets_qc_version()))
     shinyjs::html("element_facets_qc_version2", paste0('facets qc version: ', facets_qc_version()))
     
-    # check if sshfs is mounted
-    if (!verify_sshfs_mount(values$config$watcher_dir)) {
-      return(NULL)
-    }
-
-    ## check if watcher is running
-    {
-      if (!file.exists(paste0(values$config$watcher_dir, '/watcher.log'))) {
-        showModal(modalDialog( title = "Error",  
-                               'refit watcher is not setup. check the config file. aborting!',
-                               easyClose = TRUE))
-        stopApp(1)
-      }
-      
-      cur_time = as.numeric(system(" date +%s ", intern=TRUE))
-      if (Sys.info()['sysname'] == "Linux" ) { 
-	last_mod = as.numeric(system(paste0("stat -c %Y ", values$config$watcher_dir, "/watcher.log"), intern=TRUE)) 
-      } else { 
-	last_mod = as.numeric(system(paste0("stat -f%c ", values$config$watcher_dir, "/watcher.log"), intern=TRUE)) 
-      }
-      
-      if ( cur_time - last_mod < 900) {
-        values$watcher_status = T
-        shinyjs::showElement(id="div_watcherSuccess")
-      } else {
-        values$watcher_status = F
-        shinyjs::showElement(id="div_watcherFail")
-      }
-    }
   })
   
   observeEvent(input$link_choose_repo, {
@@ -177,14 +148,11 @@ function(input, output, session) {
   
   shinyjs::hideElement("button_saveChanges")
   
-  observeEvent(input$button_mountFailRefresh, {
-    verify_sshfs_mount(values$config$watcher_dir)
-    return(NULL)
-  })
+
 
   observeEvent(input$reviewTabsetPanel, {
    if (input$reviewTabsetPanel == "cBioPortal") {
-     if (!verify_sshfs_mount(values$config$watcher_dir)) { return (NULL) }
+
      selected_sample = paste(unlist(values$manifest_metadata[input$datatable_samples_rows_selected,1]), collapse="")
      dmp_id = (values$manifest_metadata %>% filter(sample_id == selected_sample))$dmp_id[1]
 
@@ -202,7 +170,7 @@ function(input, output, session) {
   })
 
   observeEvent(input$button_repoSamplesInput, {
-    if (!verify_sshfs_mount(values$config$watcher_dir)) { return (NULL) }
+
     
     if (is.null(values$selected_repo)) {
       showModal(modalDialog(title = "Failed", 
@@ -248,7 +216,7 @@ function(input, output, session) {
   })
 
   observeEvent(input$button_samplesInput, {
-    if (!verify_sshfs_mount(values$config$watcher_dir)) { return (NULL) }
+
 
     values$selected_repo = NULL
     
@@ -320,7 +288,7 @@ function(input, output, session) {
   )
   
   observeEvent(input$datatable_samples_rows_selected, {
-    if (!verify_sshfs_mount(values$config$watcher_dir)) { return (NULL) }
+
     selected_sample = paste(unlist(values$manifest_metadata[input$datatable_samples_rows_selected,1]), collapse="")
     selected_sample_path = paste(unlist(values$manifest_metadata[input$datatable_samples_rows_selected,2]), collapse="")
     selected_sample_num_fits = values$manifest_metadata[input$datatable_samples_rows_selected,4]
@@ -407,7 +375,7 @@ function(input, output, session) {
   })
 
   observeEvent(input$selectInput_selectFit, {
-    if (!verify_sshfs_mount(values$config$watcher_dir)) { return (NULL) }
+
     output$verbatimTextOutput_runParams <- renderText({})
     output$imageOutput_pngImage1 <- renderImage({ list(src="", width=0, height=0)})
     
@@ -563,7 +531,7 @@ function(input, output, session) {
   })
 
   observeEvent(input$radioGroupButton_fitType, {
-    if (!verify_sshfs_mount(values$config$watcher_dir)) { return (NULL) }
+
 
     if (input$selectInput_selectFit == "Not selected") {
       return(NULL)
@@ -679,7 +647,7 @@ function(input, output, session) {
   })
 
   observeEvent(input$button_closeUpView, {
-    if (!verify_sshfs_mount(values$config$watcher_dir)) { return (NULL) }
+
     if (input$selectInput_selectFit == "Not selected") {
       output$verbatimTextOutput_runParams <- renderText({})
       output$imageOutput_pngImage1 <- renderImage({ list(src="", width=0, height=0)})
@@ -718,7 +686,7 @@ function(input, output, session) {
 
 
   observeEvent(input$button_refit, {
-    if (!verify_sshfs_mount(values$config$watcher_dir)) { return (NULL) }
+
     if (input$selectInput_selectFit == "Not selected") {
       showModal(modalDialog(
         title = "Cannot submit refit", paste0("select 'any' fit first and then click 'Run'")
@@ -807,7 +775,7 @@ function(input, output, session) {
     name_tag = glue(name_tag)
     refit_name <- glue('/refit_{name_tag}')
     
-    cmd_script_pfx = paste0(values$config$watcher_dir, "/refit_jobs/facets_refit_cmd_")
+    cmd_script_pfx = paste0(run_path, "/refit_jobs/facets_refit_cmd_")
     
     refit_dir <- paste0(run_path, refit_name)
     facets_lib_path = supported_facets_versions[version==facets_version_to_use]$lib_path
@@ -870,5 +838,8 @@ function(input, output, session) {
              "Check back in a few minutes. Logs: ", refit_cmd_file, ".*")
     ))
     values$submitted_refit <- c(values$submitted_refit, refit_dir)
+
+    system(refit_cmd, intern = TRUE)
+    
   })
 }
