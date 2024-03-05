@@ -69,6 +69,6 @@ RUN cd /tmp \
 ENV PYTHONNOUSERSITE set
 ENV FACETS_OVERRIDE_EXITCODE set
 
-COPY impact_juno_config.json /usr/bin/facets-preview/
-RUN chmod 744 /usr/bin/facets-preview/impact_juno_config.json
+COPY fp_config.json /usr/bin/facets-preview/
+RUN chmod 744 /usr/bin/facets-preview/fp_config.json
 EXPOSE 3838

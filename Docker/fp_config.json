@@ -11,7 +11,7 @@
   "facets_lib": [
     {
       "version": "0.5.14",
-      "lib_path": "/usr/local/lib/R/site-library/facets/"
+      "lib_path": "/usr/local/lib/R/site-library/"
     }
   ],
   "verify_sshfs_mount" : "",
