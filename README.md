@@ -19,8 +19,8 @@
 * Navigate to the mounted directory. `cd ~/mskcc/juno/impact/facets`
 
 ## Run the Docker Image
-* Run the docker image. `docker run -v $PWD:$PWD --workdir $PWD  -p 3838:3838 --name test --rm -i -t price0416/fp_docker /bin/bash`. You will notice the prompt on your terminal now shows `root@randomNumberString`.  At this point you are inside the running container.  Exit with CTRL+D.
-* Start FACETS Preview with the following command. `Rscript -e "facets_preview_config_file = '/usr/bin/facets-preview/fp_config.json' ; options(shiny.port = 3838, shiny.host = '0.0.0.0', shiny.launch.browser = FALSE) ; library(facetsPreview); facetsPreview::launch_application()"`
+* Run the docker image. `docker run -v $PWD:$PWD --workdir $PWD  -p 3838:3838 --name test --rm -i -t price0416/fp_docker /bin/bash`. You will notice the prompt on your terminal now shows `root@randomNumberString`.  At this point you are inside the running container.  If you ever need to exit the container, use CTRL+D.
+* Start FACETS Preview with the following command from inside the running container. `Rscript -e "facets_preview_config_file = '/usr/bin/facets-preview/fp_config.json' ; options(shiny.port = 3838, shiny.host = '0.0.0.0', shiny.launch.browser = FALSE) ; library(facetsPreview); facetsPreview::launch_application()"`
 * Open a browser and navigate to [http://0.0.0.0:3838/](http://0.0.0.0:3838/)
 * FACETS Preview should load.
 
