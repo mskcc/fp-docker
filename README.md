@@ -13,7 +13,7 @@
 ## Prepare access to your FACETS data from remote sources.
 * If you want to access FACETS data on a remote machine (i.e. pyr/juno), setup [macFUSE](https://osxfuse.github.io/).
 * Make a local drive to host your mount, i.e. `mkdir ~/mskcc/juno/impact/facets`
-* Add a mount command to your ~/.bash_profile on your local computer. For example, to mount pyr, `alias mountfacetspyr='sudo umount -f ~/juno || sshfs yourUser@pyr.mskcc.org:/rtsess01/compute/juno/cmo/juno/work/ccs/shared/resources/impact/facets ~/mskcc/juno/impact/facets -o auto_cache -o defer_permissions -o local -o IdentityFile=/Users/yourUser/.ssh/id_rsa -o reconnect -o transform_symlinks -o follow_symlinks'`
+* Add a mount command to your ~/.bash_profile on your local computer. For example, to mount pyr, `alias mountfacetspyr='sudo umount -f ~/mskcc/juno/impact/facets || sshfs yourUser@pyr.mskcc.org:/rtsess01/compute/juno/cmo/juno/work/ccs/shared/resources/impact/facets ~/mskcc/juno/impact/facets -o auto_cache -o defer_permissions -o local -o IdentityFile=/Users/yourUser/.ssh/id_rsa -o reconnect -o transform_symlinks -o follow_symlinks'`
 * Run your bash_profile. `source ~/.bash_profile`
 * Mount the remote location. `mountfacetspyr`. This will create a remote mount of the drive to your local drive, in this example at `~/mskcc/juno/impact/facets`. Note that you may need to execute this command twice, as the first execution attempt will sometimes ask for your local adminstrator password, and the second attempt will ask for your remote login credentials.
 * Navigate to the mounted directory. `cd ~/mskcc/juno/impact/facets`
