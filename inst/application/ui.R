@@ -11,7 +11,7 @@
 ## to keep the text boxes inline.
 textInputRow<-function (inputId, label, value = "") {
   div(style="display:inline-block",
-      tags$label(label, `for` = inputId), 
+      tags$label(label, `for` = inputId),
       tags$input(id = inputId, type = "text", value = value, class="input-group"))
 }
 
@@ -33,7 +33,7 @@ ui <-
                              style = "background-color: white; border-color: white; ",
                              HTML(
                                paste0("<div style=\"font-size: 16px; font-family: georgia; color: red; display: inline-block\">
-                                      <i class=\"fa fa-exclamation-triangle\" aria-hidden=\"true\"></i><strong> /juno/ not mounted. 
+                                      <i class=\"fa fa-exclamation-triangle\" aria-hidden=\"true\"></i><strong> /juno/ not mounted.
                                       Nothing is gonna work!  </strong></div>")
                              ),
                              actionButton("button_mountFailRefresh", "Check for mount again", icon = icon("refresh"))
@@ -69,7 +69,7 @@ ui <-
       tabPanel("Samples Manifest",
                value="tabPanel_samplesManifest",
                mainPanel(
-                 wellPanel(downloadLink("download_mapping_file", "Download Mapping File"), 
+                 wellPanel(downloadLink("download_mapping_file", "Download Mapping File"),
                            style = "background: gray90"),
                  wellPanel(DT::dataTableOutput("datatable_samples"), style = "background: gray90"),
                  width=12
@@ -86,7 +86,7 @@ ui <-
                           shinyjs::hidden(div(id="div_bestFitTrophy",
                                               HTML(" <center><font size=4>
                                                    <i class=\"fa fa-thumbs-up\" aria-hidden=\"true\"></i> Reviewed as best fit</center>
-                                                   </font>"), 
+                                                   </font>"),
                                               style="color: darkgreen; align: left; width: 70%")),
                           style = "padding-left: 5px; padding-top: 10px; padding-right: 5px"
                         ),
@@ -108,10 +108,10 @@ ui <-
 
                           column(12,
                                  textInput("textInput_newDipLogR", value = "","dipLogR ")),
-                          column(6, 
+                          column(6,
                                  textInput("textInput_newPurityCval", value = 100, "purity cval "),
                                  textInput("textInput_newPurityMinNHet", "purity min nhet ")),
-                          column(6, 
+                          column(6,
                                  textInput("textInput_newHisensCval", value = 50, "hisens cval "),
                                  textInput("textInput_newHisensMinNHet", "hisens min nhet ")),
                           column(12,
@@ -135,7 +135,7 @@ ui <-
                                       h3("Showing QC for:"),
                                       verbatimTextOutput("verbatimTextOutput_name_of_qc_fit"),
                                       h3("facets QC flags:"),
-                                      h4(p(id = "element_facets_qc_version1", ""), 
+                                      h4(p(id = "element_facets_qc_version1", ""),
                                          style="color: #de2e07; font-weight: bold; font-style: italic; padding-top: 0px; padding-bottom: 0px"),
                                       DT::dataTableOutput("datatable_QC_flags"),
                                       h3("QC metrics (NOTE: purity run):"),
@@ -156,19 +156,251 @@ ui <-
                                      wellPanel(
                                        HTML(
                                          "<div style=\"padding: 1px;font-size: 14px; \">
-                                         <u>Note:</u> This table is editable and 'Save Changes' button saves the edits to file ending 
-                                         with .cncf.edited.txt. This '.cncf.edited.txt' file (if exists) will be loaded 
+                                         <u>Note:</u> This table is editable and 'Save Changes' button saves the edits to file ending
+                                         with .cncf.edited.txt. This '.cncf.edited.txt' file (if exists) will be loaded
                                          automatically next time. (Only tcn/lcn/tcn.em/lcn.em are saved)</div><br>"
                                        ),
                                        actionButton("button_saveChanges", "Save changes to this file",
                                                     width='100%', class="btn-primary"),
                                        rhandsontable::rHandsontableOutput("editableSegmentsTable"))
- 
+
                                      ),
                             tabPanel("Review notes",
                                      wellPanel(
                                        h4(strong("facets QC summary:")),
-                                       h4(p(id = "element_facets_qc_version2", ""), 
+                                       h4(p(id = "element_facets_qc_version2", ""),
+                                          style="color: #de2e07; font-weight: bold; font-style: italic; padding-top: 0px; padding-bottom: 0px"),
+                                       DT::dataTableOutput("datatable_fitReviews")
+                                     ),
+                                     wellPanel(
+                                       h4(strong("Review History:")),
+                                       DT::dataTableOutput("datatable_reviewHistory")
+                                     ),
+                                     wellPanel(
+                                       h4(strong("Add Manual Review:")),
+                                       radioButtons("radioButtons_reviewStatus", label=NULL,
+                                                          c("Not Reviewed" = "not_reviewed",
+                                                            "No fit available" = "reviewed_no_fit",
+                                                            "Acceptable fit" = "reviewed_acceptable_fit",
+                                                            "Best fit" = "reviewed_best_fit"),
+                                                    inline=TRUE,
+                                                    selected = "not_reviewed"),
+                                       conditionalPanel(
+                                         condition = "input.radioButtons_reviewStatus == 'reviewed_acceptable_fit' | input.radioButtons_reviewStatus == 'reviewed_best_fit'",
+                                         h5(strong("Select best fit (applicable only if best fit selected):")),
+                                         selectInput(inputId = "selectInput_selectBestFit", label=NULL,
+                                                     choices=c("Not selected")),
+                                         checkboxInput(inputId = "checkbox_purity_only", label = "Use purity run for CCF estimation", value = FALSE),
+                                         checkboxInput(inputId = "checkbox_use_edited_cncf", label = "Use edited.cncf.txt", value = FALSE),
+                                         textInput("textInput_purity", label = 'Use purity (only to be set when facets purity is NA/0.3):')
+                                       ),
+                                       h4(strong("Review Notes:")),
+                                       textAreaInput("textAreaInput_reviewNote", label=NULL, value="", rows=1),
+                                       h4(strong("Reviewed By:")),
+                                       verbatimTextOutput("verbatimTextOutput_signAs")#,
+                                       #actionButton("button_addReview", "Submit Review", class = "btn-primary", width='100%')
+                                       )
+                                  ),
+                            tabPanel("cBioPortal")
+                          ),width = '100%'
+                      )
+               )
+      )
+    ),
+    tabPanel("[sessionInfo]",
+             value="tabPanel_sessionInfo",
+             mainPanel(
+               verbatimTextOutput("verbatimTextOutput_sessionInfo")
+             )
+    )
+  )
+)
+
+#' helper function for app
+#'
+#' @return runs ui
+#' @export ui
+#' @importFrom shinyWidgets radioGroupButtons
+#' @importFrom DT datatable
+#' @import shinyjs
+#' @import rhandsontable
+
+## to keep the text boxes inline.
+textInputRow<-function (inputId, label, value = "") {
+  div(style="display:inline-block",
+      tags$label(label, `for` = inputId),
+      tags$input(id = inputId, type = "text", value = value, class="input-group"))
+}
+
+ui <-
+  fluidPage(
+   shinyjs::useShinyjs(),
+   tags$style(".glyphicon-ok-sign {color:#2b8ee5}
+              .glyphicon-remove {color:darkred}
+              .glyphicon-ok, .glyphicon-thumbs-up {color:green}
+              .glyphicon-remove, .glyphicon-thumbs-down {color:darkred}"),
+    navbarPage(
+      "FACETS Preview",
+      id="navbarPage1",
+      tabPanel("Load Samples",
+               value="tabPanel_sampleInput",
+               mainPanel(
+                 shinyjs::hidden(
+                   wellPanel(id = "wellPanel_mountFail",
+                             style = "background-color: white; border-color: white; ",
+                             HTML(
+                               paste0("<div style=\"font-size: 16px; font-family: georgia; color: red; display: inline-block\">
+                                      <i class=\"fa fa-exclamation-triangle\" aria-hidden=\"true\"></i><strong> /juno/ not mounted.
+                                      Nothing is gonna work!  </strong></div>")
+                             ),
+                             actionButton("button_mountFailRefresh", "Check for mount again", icon = icon("refresh"))
+                   )
+                 ),
+                 HTML(
+                   "<div style=\"background-color: #EEEEEE; padding: 20px;font-size: 16px; \">
+                   <strong>USAGE</strong> <br> Enter facets output directory for
+                   each of the samples to be reviewed. This facets output directory is of the standard format generated by
+                   facetsSuite v2. The directory should have the counts file as well as the one or many run directories
+                   (eg: default, facets_c50p100R0.5.6, refit_dipLogR_1.0, etc)</div><br>"
+                 ),
+                 wellPanel(
+                   h4("Load from selected repository. Note: Refit permissions maybe restricted."),
+                   div(style="display:inline-block",
+                       actionLink("link_choose_repo", "choose repository"),
+                       style="align:right; padding:1px"),
+                   h4(p(id = "element_repo_name", "No repository loaded!")),
+                   h5(p(id = "element_repo_manifest", "")),
+                   textAreaInput("textAreaInput_repoSamplesInput", label=NULL, value="", rows=1),
+                   actionButton("button_repoSamplesInput", "Retrieve sample(s) from repo", class = "btn-primary")
+                 ),
+                 h3("or",style="text-align:center"),
+                 wellPanel(
+                   h4("Paste facets run directories"),
+                   h5("Eg: /juno/work/ccs/bandlamc/facets_review_app/test_data/P-0009137-T01-IM5_P-0009137-N01-IM5"),
+                   textAreaInput("textAreaInput_samplesInput", label=NULL, value="", rows=4),
+                   actionButton("button_samplesInput", "Retrieve Sample(s)", class = "btn-primary")
+                 ),
+                 width = 12
+                 )
+      ),
+      tabPanel("Samples Manifest",
+               value="tabPanel_samplesManifest",
+               mainPanel(
+                 wellPanel(downloadLink("download_mapping_file", "Download Mapping File"),
+                           style = "background: gray90"),
+                 wellPanel(DT::dataTableOutput("datatable_samples"), style = "background: gray90"),
+                 width=12
+               )
+      ),
+      tabPanel("Review Fits",
+               value="tabPanel_reviewFits",
+               fluidRow(
+                 column(3,
+                        wellPanel(
+                          h4(strong("Select Sample:")),
+                          selectInput(inputId = "selectInput_selectSample", label=NULL,
+                                      choices=c("Not selected"), selected=NA),
+                          h4(strong("Select fit:")),
+                          selectInput(inputId = "selectInput_selectFit", label=NULL,
+                                      choices=c("Not selected"), selected=NA),
+                          shinyjs::hidden(div(id="div_bestFitTrophy",
+                                              HTML(" <center><font size=4>
+                                                   <i class=\"fa fa-thumbs-up\" aria-hidden=\"true\"></i> Reviewed as best fit</center>
+                                                   </font>"),
+                                              style="color: darkgreen; align: left; width: 70%")),
+                          style = "padding-left: 5px; padding-top: 10px; padding-right: 5px"
+                        ),
+                        wellPanel(
+                          style = "padding-left: 5px; padding-right: 5px; padding-top: 5px; padding-bottom: 5px;", # Adjust padding as needed
+                          div(style = "display: inline-block;",
+                              h4(strong("Compare Fits"))
+                          ),
+                          div(style = "display: inline-block; vertical-align: middle; margin-top: 10px;",
+                              div(style = "position: relative; left: 10px; top: -5px; transform: scale(1.5);",
+                                  checkboxInput("compareFitsCheck", label = NULL)
+                              )
+                          )
+                        ),
+                        shinyjs::hidden(wellPanel(id = "panelA", "I AM PANEL A")),
+                        wellPanel(
+                          h4(strong("Select run: ")),
+                          shinyWidgets::radioGroupButtons(inputId = "radioGroupButton_fitType",
+                                                          choices = c("Purity", "Hisens"),
+                                                          selected=NA,
+                                                          status = "primary",size = 'normal', width='100%',justified = TRUE),
+                          actionButton("button_copyClipPath", "Copy path to clipboard",
+                                       icon = icon("clipboard"),
+                                       style="height:28px;font-size:8pt;vertical-align: middle; color:darkblue"),
+                          h5(em('run parameters')),
+                          verbatimTextOutput("verbatimTextOutput_runParams",placeholder = TRUE),
+                          style = "padding: 10px; "
+                        ),
+                        wellPanel(
+                          h4(strong("Generate a new fit:")),
+
+                          column(12,
+                                 textInput("textInput_newDipLogR", value = "","dipLogR ")),
+                          column(6,
+                                 textInput("textInput_newPurityCval", value = 100, "purity cval "),
+                                 textInput("textInput_newPurityMinNHet", "purity min nhet ")),
+                          column(6,
+                                 textInput("textInput_newHisensCval", value = 50, "hisens cval "),
+                                 textInput("textInput_newHisensMinNHet", "hisens min nhet ")),
+                          column(12,
+                                 textInput("textInput_newSnpWindowSize", "snp window size "),
+                                 textInput("textInput_newNormalDepth", "normal depth "),
+                                 selectInput("selectInput_newFacetsLib", "facets version:",
+                                             c("use current run's facets version" = "use current run's facets version"))),
+                          actionButton("button_refit", "Run", class = "btn-primary", width = '100%'),
+                          style = "padding: 10px"
+                        )
+                 ),
+                 column(9,
+                        mainPanel(
+                          tabsetPanel(
+                            id="reviewTabsetPanel",
+                            tabPanel("PNG image",
+                                     value = "png_image_tabset",
+                                     imageOutput("imageOutput_pngImage1")),
+                            tabPanel("QC Summary",
+                                     value = "tabPanel_QC",
+                                      h3("Showing QC for:"),
+                                      verbatimTextOutput("verbatimTextOutput_name_of_qc_fit"),
+                                      h3("facets QC flags:"),
+                                      h4(p(id = "element_facets_qc_version1", ""),
+                                         style="color: #de2e07; font-weight: bold; font-style: italic; padding-top: 0px; padding-bottom: 0px"),
+                                      DT::dataTableOutput("datatable_QC_flags"),
+                                      h3("QC metrics (NOTE: purity run):"),
+                                      DT::dataTableOutput("datatable_QC_metrics")
+                                     ),
+                            tabPanel("Close Ups",
+                                     value="closeup_tabset",
+                                     wellPanel(
+                                       textInput("textInput_geneForCloseup", label = NULL,
+                                                 placeholder = "Hugo Symbol"),
+                                       actionButton("button_closeUpView", "View Gene", class = "btn-primary",
+                                                    width='100%')),
+                                     plotOutput(outputId = "plotOutput_closeup", height="600px")
+                                     ),
+                            tabPanel("Segments",
+                                     mainPanel(DT::dataTableOutput("datatable_cncf"), width=12)),
+                            tabPanel("Segments (editable)",
+                                     wellPanel(
+                                       HTML(
+                                         "<div style=\"padding: 1px;font-size: 14px; \">
+                                         <u>Note:</u> This table is editable and 'Save Changes' button saves the edits to file ending
+                                         with .cncf.edited.txt. This '.cncf.edited.txt' file (if exists) will be loaded
+                                         automatically next time. (Only tcn/lcn/tcn.em/lcn.em are saved)</div><br>"
+                                       ),
+                                       actionButton("button_saveChanges", "Save changes to this file",
+                                                    width='100%', class="btn-primary"),
+                                       rhandsontable::rHandsontableOutput("editableSegmentsTable"))
+
+                                     ),
+                            tabPanel("Review notes",
+                                     wellPanel(
+                                       h4(strong("facets QC summary:")),
+                                       h4(p(id = "element_facets_qc_version2", ""),
                                           style="color: #de2e07; font-weight: bold; font-style: italic; padding-top: 0px; padding-bottom: 0px"),
                                        DT::dataTableOutput("datatable_fitReviews")
                                      ),
