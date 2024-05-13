@@ -1376,28 +1376,20 @@ function(input, output, session) {
     })
 
     output$datatable_QC_metrics <- DT::renderDataTable({
-      print("QcMetrics")
-      print(selected_run)
-      print("----")
-      print(list(columnDefs = list(list(className = 'dt-center')),
-                 pageLength = 200, dom = 't', rownames= FALSE))
-      print("----")
-      print(DT::datatable(selected_run %>%
-                            select(-ends_with("note"),
-                                   -ends_with("pass")) %>%
-                            t,
-                          options = list(columnDefs = list(list(className = 'dt-center')),
-                                         pageLength = 200, dom = 't', rownames= FALSE),
-                          colnames = c("")))
 
       DT::datatable(selected_run %>%
-                      select(-ends_with("note"),
-                             -ends_with("pass")) %>%
+                      select(-ends_with("note")) %>%
+                      select(-ends_with("pass")) %>%
                       t,
-                    options = list(columnDefs = list(list(className = 'dt-center')),
-                                   pageLength = 200, dom = 't', rownames= FALSE),
-                    colnames = c(""))
-
+                      options = list(
+                        columnDefs = list(
+                          list(targets = "_all", className = 'dt-center')
+                        ),
+                        pageLength = 200,
+                        dom = 't',
+                        rownames = FALSE
+                      ),
+                      colnames = c(""))
 
     })
 
@@ -1556,9 +1548,13 @@ function(input, output, session) {
       }
       DT::datatable(cncf_data,
                     selection=list(mode='single'),
-                    options = list(columnDefs = list(list(className = 'dt-center')),
-                                   pageLength = 50),
-                    rownames=FALSE)
+                    options = list(
+                      columnDefs = list(
+                        list(targets = "_all", className = 'dt-center')
+                      ),
+                      pageLength = 50,
+                      rownames = FALSE
+                    ))
     })
 
     output$editableSegmentsTable <- rhandsontable::renderRHandsontable({
