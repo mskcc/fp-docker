@@ -175,14 +175,15 @@ ui <-
                                      fluidRow(
                                        column(width = 12,
                                               div(
-                                                style = "overflow-x: auto; white-space: nowrap;",
+                                                style = "overflow-x: auto; white-space: nowrap;",  # Only horizontal scrolling
                                                 tags$div(
-                                                  style = "display: inline-block; max-height: 1000px;",
-                                                  imageOutput("imageOutput_pngImage1", width = "650px")
+                                                  style = "display: inline-block; vertical-align: top;",  # Align images to the top
+                                                  imageOutput("imageOutput_pngImage1", width = "650px", height = "auto")
                                                 ),
                                                 tags$div(
-                                                  style = "display: inline-block; margin-left: 10px; max-height: 1000px;",
-                                                  imageOutput("imageOutput_pngImage2", width = "650px")
+                                                  id = "div_imageOutput_pngImage2",
+                                                  style = "display: inline-block; margin-left: 10px; vertical-align: top;",  # Align images to the top
+                                                  imageOutput("imageOutput_pngImage2", width = "650px", height = "auto")
                                                 )
                                               )
                                        )

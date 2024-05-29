@@ -321,6 +321,7 @@ function(input, output, session) {
     values$sample_runs_compare <- metadata_init(selected_sample, selected_sample_path, progress)
 
     output$verbatimTextOutput_runParams <- renderText({})
+    output$verbatimTextOutput_runParams_compare <- renderText({})
     output$imageOutput_pngImage1 <- renderImage({ list(src="", width=0, height=0)}, deleteFile=FALSE)
 
    # if ( is.null(values$sample_runs) || dim(values$sample_runs)[1] == 0) {
@@ -507,7 +508,7 @@ function(input, output, session) {
     progress$set(message = "Loading FACETS runs for the selected sample:", value = 0)
     values$sample_runs_compare <- metadata_init(selected_sample, selected_sample_path, progress)
 
-    output$verbatimTextOutput_runParams <- renderText({})
+    output$verbatimTextOutput_runParams_compare <- renderText({})
     output$imageOutput_pngImage2 <- renderImage({ list(src="", width=0, height=0)}, deleteFile=FALSE)
 
     # update with review status
@@ -534,10 +535,10 @@ function(input, output, session) {
     )
 
 
-  #  updateSelectInput(session, "selectInput_selectBestFit_compare",
-  #                    choices = as.list(c("Not selected", unlist(values$sample_runs_compare$fit_name))),
-  #                    selected = "Not selected"
-  #  )
+    updateSelectInput(session, "selectInput_selectBestFit_compare",
+                      choices = as.list(c("Not selected", unlist(values$sample_runs_compare$fit_name))),
+                      selected = "Not selected"
+    )
 
     #if (nrow(selected_run) > 0) {
     #  updateTextInput(session, "textInput_newDipLogR", label = NULL, value = "")
@@ -637,7 +638,7 @@ function(input, output, session) {
 
   observeEvent(input$selectInput_selectFit_compare, {
 
-  #  output$verbatimTextOutput_runParams <- renderText({})
+    output$verbatimTextOutput_runParams_compare <- renderText({})
     output$imageOutput_pngImage2 <- renderImage({ list(src="", width=0, height=0)}, deleteFile=FALSE)
 
     if ( input$selectInput_selectFit_compare == 'Not selected') {
@@ -653,11 +654,11 @@ function(input, output, session) {
 
     # update other text options
     selected_run <- values$sample_runs_compare[which(values$sample_runs_compare$fit_name == paste0(input$selectInput_selectFit_compare)),]
-  #  if ( selected_run$is_best_fit[1]) {
-  #    shinyjs::showElement(id="div_bestFitTrophy")
-  #  } else {
-  #    shinyjs::hideElement(id="div_bestFitTrophy")
-  #  }
+    if ( selected_run$is_best_fit[1]) {
+      shinyjs::showElement(id="div_bestFitTrophy_compare")
+    } else {
+      shinyjs::hideElement(id="div_bestFitTrophy_compare")
+    }
 
    # output$verbatimTextOutput_name_of_qc_fit <- renderText({
    #   paste0(selected_run$fit_name)
@@ -731,9 +732,11 @@ function(input, output, session) {
     if (input$compareFitsCheck) {
       shinyjs::showElement(id= "selectBox_compare")
       shinyjs::showElement(id= "runType_compare")
+      shinyjs::show("div_imageOutput_pngImage2")
     } else {
       shinyjs::hideElement(id= "selectBox_compare")
       shinyjs::hideElement(id= "runType_compare")
+      shinyjs::hide("div_imageOutput_pngImage2")
 
     }
   })
@@ -930,26 +933,26 @@ function(input, output, session) {
     }
     values$show_fit_type_compare = ""
 
-    #output$verbatimTextOutput_runParams <- renderText({})
+    output$verbatimTextOutput_runParams_compare <- renderText({})
     output$imageOutput_pngImage2 <- renderImage({ list(src="", width=0, height=0)}, deleteFile=FALSE)
 
     selected_run <- values$sample_runs_compare[which(values$sample_runs_compare$fit_name == paste0(input$selectInput_selectFit_compare)),]
 
     shinyjs::hideElement("button_saveChanges")
-#    output$verbatimTextOutput_runParams <- renderText({
-#      if (input$radioGroupButton_fitType == "Hisens") {
-#        paste0("purity: ", selected_run$hisens_run_Purity[1], ", ",
-#               "ploidy: ", selected_run$hisens_run_Ploidy[1], ", ",
-#               "dipLogR: ", selected_run$hisens_run_dipLogR[1], "\n",
-#               "facets_lib: ", selected_run$hisens_run_version[1])
-#      } else {
-#        paste0("purity: ", selected_run$purity_run_Purity[1], ", ",
-#               "ploidy: ", selected_run$purity_run_Ploidy[1], ", ",
-#               "dipLogR: ", selected_run$purity_run_dipLogR[1], "\n",
-#               "facets_lib: ", selected_run$purity_run_version[1], "\n",
-#               "alt dipLogR: ", selected_run$purity_run_alBalLogR[1])
-#      }
-#    })
+    output$verbatimTextOutput_runParams_compare <- renderText({
+      if (input$radioGroupButton_fitType_compare == "Hisens") {
+        paste0("purity: ", selected_run$hisens_run_Purity[1], ", ",
+               "ploidy: ", selected_run$hisens_run_Ploidy[1], ", ",
+               "dipLogR: ", selected_run$hisens_run_dipLogR[1], "\n",
+               "facets_lib: ", selected_run$hisens_run_version[1])
+      } else {
+        paste0("purity: ", selected_run$purity_run_Purity[1], ", ",
+               "ploidy: ", selected_run$purity_run_Ploidy[1], ", ",
+               "dipLogR: ", selected_run$purity_run_dipLogR[1], "\n",
+               "facets_lib: ", selected_run$purity_run_version[1], "\n",
+               "alt dipLogR: ", selected_run$purity_run_alBalLogR[1])
+      }
+    })
 
 #    output$datatable_cncf <- DT::renderDataTable({
 #      cncf_data <-
