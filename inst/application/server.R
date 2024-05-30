@@ -556,6 +556,8 @@ function(input, output, session) {
 
   observeEvent(input$selectInput_selectFit, {
 
+    print("UpdateInput_SelectFit")
+
     output$verbatimTextOutput_runParams <- renderText({})
     output$imageOutput_pngImage1 <- renderImage({ list(src="", width=0, height=0)}, deleteFile=FALSE)
 
@@ -582,35 +584,42 @@ function(input, output, session) {
       paste0(selected_run$fit_name)
     })
 
-    output$datatable_QC_flags <- DT::renderDataTable({
-      filter_columns = c("homdel_filter", "diploid_seg_filter", "waterfall_filter",
-                         "hyper_seg_filter", "high_ploidy_filter", "valid_purity_filter",
-                         "em_cncf_icn_discord_filter", "dipLogR_too_low_filter",
-                         "icn_allelic_state_concordance_filter", "subclonal_genome_filter", "contamination_filter")
-      filter_names = c("Homozygous deletions", "Diploid segments (in dipLogR)", "No Waterfall pattern",
-                       "No hyper segmentation", "Not high ploidy", "Has valid purity",
-                       "em vs. cncf TCN/LCN discordance", "dipLogR not too low",
-                       "ICN is discordant with allelic state ", "High % subclonal","contamination check")
 
-      df <- data.frame(filter_name = filter_names,
-                       passed = unlist(selected_run[, paste0(filter_columns, '_pass')], use.names = F),
-                       note = unlist(selected_run[, paste0(filter_columns, '_note')], use.names = F))
-      gicon <- function(x) as.character(icon(x, lib = "glyphicon"))
-      DT::datatable(df %>%
-                      mutate(passed = ifelse(passed, gicon('ok'), gicon('remove'))),
-                    selection=list(mode='single'),
-                    options = list(columnDefs = list(list(className = 'dt-center', targets=0:2)),
-                                   pageLength = 50, dom = 't', rownames= FALSE),
-                    colnames = c("Filter" , "Passed?", "Note"),
-                    escape=F)
-    })
+    if(input$compareFitsCheck)
+    {
+      selected_run_compare <- values$sample_runs_compare[which(values$sample_runs_compare$fit_name == paste0(input$selectInput_selectFit_compare)),]
 
-    output$datatable_QC_metrics <- DT::renderDataTable({
+      output$datatable_QC_flags <- DT::renderDataTable({
+        filter_columns = c("homdel_filter", "diploid_seg_filter", "waterfall_filter",
+                           "hyper_seg_filter", "high_ploidy_filter", "valid_purity_filter",
+                           "em_cncf_icn_discord_filter", "dipLogR_too_low_filter",
+                           "icn_allelic_state_concordance_filter", "subclonal_genome_filter", "contamination_filter")
+        filter_names = c("Homozygous deletions", "Diploid segments (in dipLogR)", "No Waterfall pattern",
+                         "No hyper segmentation", "Not high ploidy", "Has valid purity",
+                         "em vs. cncf TCN/LCN discordance", "dipLogR not too low",
+                         "ICN is discordant with allelic state ", "High % subclonal","contamination check")
 
-      DT::datatable(selected_run %>%
-                      select(-ends_with("note")) %>%
-                      select(-ends_with("pass")) %>%
-                      t,
+        df <- data.frame(filter_name = filter_names,
+                         passed = unlist(selected_run[, paste0(filter_columns, '_pass')], use.names = F),
+                         passed_compare = unlist(selected_run_compare[, paste0(filter_columns, '_pass')], use.names = F),
+                         note = unlist(selected_run[, paste0(filter_columns, '_note')], use.names = F))
+        gicon <- function(x) as.character(icon(x, lib = "glyphicon"))
+        DT::datatable(df %>%
+                        mutate(passed = ifelse(passed, gicon('ok'), gicon('remove')))
+                         %>% mutate(passed_compare = ifelse(passed_compare, gicon('ok'), gicon('remove'))),
+                      selection=list(mode='single'),
+                      options = list(columnDefs = list(list(className = 'dt-center', targets=0:2)),
+                                     pageLength = 50, dom = 't', rownames= FALSE),
+                      colnames = c("Filter" , selected_run$tumor_sample_id, selected_run_compare$tumor_sample_id, "Flag Description"),
+                      escape=F)
+      })
+
+      combined_run <- rbind(selected_run, selected_run_compare)
+      output$datatable_QC_metrics <- DT::renderDataTable({
+        DT::datatable(combined_run %>%
+                        select(-ends_with("note")) %>%
+                        select(-ends_with("pass")) %>%
+                        t,
                       options = list(
                         columnDefs = list(
                           list(targets = "_all", className = 'dt-center')
@@ -620,8 +629,50 @@ function(input, output, session) {
                         rownames = FALSE
                       ),
                       colnames = c(""))
+      })
 
-    })
+    }
+    else
+    {
+      output$datatable_QC_flags <- DT::renderDataTable({
+        filter_columns = c("homdel_filter", "diploid_seg_filter", "waterfall_filter",
+                           "hyper_seg_filter", "high_ploidy_filter", "valid_purity_filter",
+                           "em_cncf_icn_discord_filter", "dipLogR_too_low_filter",
+                           "icn_allelic_state_concordance_filter", "subclonal_genome_filter", "contamination_filter")
+        filter_names = c("Homozygous deletions", "Diploid segments (in dipLogR)", "No Waterfall pattern",
+                         "No hyper segmentation", "Not high ploidy", "Has valid purity",
+                         "em vs. cncf TCN/LCN discordance", "dipLogR not too low",
+                         "ICN is discordant with allelic state ", "High % subclonal","contamination check")
+
+        df <- data.frame(filter_name = filter_names,
+                         passed = unlist(selected_run[, paste0(filter_columns, '_pass')], use.names = F),
+                         note = unlist(selected_run[, paste0(filter_columns, '_note')], use.names = F))
+        gicon <- function(x) as.character(icon(x, lib = "glyphicon"))
+        DT::datatable(df %>%
+                        mutate(passed = ifelse(passed, gicon('ok'), gicon('remove'))),
+                      selection=list(mode='single'),
+                      options = list(columnDefs = list(list(className = 'dt-center', targets=0:2)),
+                                     pageLength = 50, dom = 't', rownames= FALSE),
+                      colnames = c("Filter" , selected_run$tumor_sample_id, "Note"),
+                      escape=F)
+      })
+
+      output$datatable_QC_metrics <- DT::renderDataTable({
+        DT::datatable(selected_run %>%
+                        select(-ends_with("note")) %>%
+                        select(-ends_with("pass")) %>%
+                        t,
+                      options = list(
+                        columnDefs = list(
+                          list(targets = "_all", className = 'dt-center')
+                        ),
+                        pageLength = 200,
+                        dom = 't',
+                        rownames = FALSE
+                      ),
+                      colnames = c(""))
+      })
+    }
 
     ## if 'purity' run exists, show it by default; otherwise show the hisens run.
     ## The following piece of code is just a hack to fool the reactive environment to trigger showing
@@ -664,28 +715,54 @@ function(input, output, session) {
    #   paste0(selected_run$fit_name)
    # })
 
-  #  output$datatable_QC_flags <- DT::renderDataTable({
-  #    filter_columns = c("homdel_filter", "diploid_seg_filter", "waterfall_filter",
-  #                       "hyper_seg_filter", "high_ploidy_filter", "valid_purity_filter",
-  #                       "em_cncf_icn_discord_filter", "dipLogR_too_low_filter",
-  #                       "icn_allelic_state_concordance_filter", "subclonal_genome_filter", "contamination_filter")
-  #    filter_names = c("Homozygous deletions", "Diploid segments (in dipLogR)", "No Waterfall pattern",
-  ##                     "No hyper segmentation", "Not high ploidy", "Has valid purity",
-  #                     "em vs. cncf TCN/LCN discordance", "dipLogR not too low",
-  #                     "ICN is discordant with allelic state ", "High % subclonal","contamination check")
-  #
-  #    df <- data.frame(filter_name = filter_names,
-  #                     passed = unlist(selected_run[, paste0(filter_columns, '_pass')], use.names = F),
-  #                     note = unlist(selected_run[, paste0(filter_columns, '_note')], use.names = F))
-  #    gicon <- function(x) as.character(icon(x, lib = "glyphicon"))
-  #    DT::datatable(df %>%
-  #                    mutate(passed = ifelse(passed, gicon('ok'), gicon('remove'))),
-  #                  selection=list(mode='single'),
-  #                  options = list(columnDefs = list(list(className = 'dt-center', targets=0:2)),
-  #                                 pageLength = 50, dom = 't', rownames= FALSE),
-  #                  colnames = c("Filter" , "Passed?", "Note"),
-  #                  escape=F)
-  #  })
+
+    if(input$compareFitsCheck)
+    {
+      selected_run_base <- values$sample_runs[which(values$sample_runs$fit_name == paste0(input$selectInput_selectFit)),]
+
+      output$datatable_QC_flags <- DT::renderDataTable({
+        filter_columns = c("homdel_filter", "diploid_seg_filter", "waterfall_filter",
+                           "hyper_seg_filter", "high_ploidy_filter", "valid_purity_filter",
+                           "em_cncf_icn_discord_filter", "dipLogR_too_low_filter",
+                           "icn_allelic_state_concordance_filter", "subclonal_genome_filter", "contamination_filter")
+        filter_names = c("Homozygous deletions", "Diploid segments (in dipLogR)", "No Waterfall pattern",
+                         "No hyper segmentation", "Not high ploidy", "Has valid purity",
+                         "em vs. cncf TCN/LCN discordance", "dipLogR not too low",
+                         "ICN is discordant with allelic state ", "High % subclonal","contamination check")
+
+        df <- data.frame(filter_name = filter_names,
+                         passed = unlist(selected_run_base[, paste0(filter_columns, '_pass')], use.names = F),
+                         passed_compare = unlist(selected_run[, paste0(filter_columns, '_pass')], use.names = F),
+                         note = unlist(selected_run[, paste0(filter_columns, '_note')], use.names = F))
+        gicon <- function(x) as.character(icon(x, lib = "glyphicon"))
+        DT::datatable(df %>%
+                        mutate(passed = ifelse(passed, gicon('ok'), gicon('remove')))
+                      %>% mutate(passed_compare = ifelse(passed_compare, gicon('ok'), gicon('remove'))),
+                      selection=list(mode='single'),
+                      options = list(columnDefs = list(list(className = 'dt-center', targets=0:2)),
+                                     pageLength = 50, dom = 't', rownames= FALSE),
+                      colnames = c("Filter" , selected_run_base$tumor_sample_id, selected_run$tumor_sample_id, "Flag Description"),
+                      escape=F)
+      })
+
+      combined_run <- rbind(selected_run_base, selected_run)
+      output$datatable_QC_metrics <- DT::renderDataTable({
+        DT::datatable(combined_run %>%
+                        select(-ends_with("note")) %>%
+                        select(-ends_with("pass")) %>%
+                        t,
+                      options = list(
+                        columnDefs = list(
+                          list(targets = "_all", className = 'dt-center')
+                        ),
+                        pageLength = 200,
+                        dom = 't',
+                        rownames = FALSE
+                      ),
+                      colnames = c(""))
+      })
+    }
+
 
   #  output$datatable_QC_metrics <- DT::renderDataTable({
 
@@ -720,10 +797,101 @@ function(input, output, session) {
 
 
   observeEvent(input$compareFitsCheck, {
+    selected_run <- values$sample_runs[which(values$sample_runs$fit_name == paste0(input$selectInput_selectFit)),]
+    selected_run_compare <- values$sample_runs_compare[which(values$sample_runs_compare$fit_name == paste0(input$selectInput_selectFit_compare)),]
+
+
     if (input$compareFitsCheck) {
       print("Checked")
+
+
+      output$datatable_QC_flags <- DT::renderDataTable({
+        filter_columns = c("homdel_filter", "diploid_seg_filter", "waterfall_filter",
+                           "hyper_seg_filter", "high_ploidy_filter", "valid_purity_filter",
+                           "em_cncf_icn_discord_filter", "dipLogR_too_low_filter",
+                           "icn_allelic_state_concordance_filter", "subclonal_genome_filter", "contamination_filter")
+        filter_names = c("Homozygous deletions", "Diploid segments (in dipLogR)", "No Waterfall pattern",
+                         "No hyper segmentation", "Not high ploidy", "Has valid purity",
+                         "em vs. cncf TCN/LCN discordance", "dipLogR not too low",
+                         "ICN is discordant with allelic state ", "High % subclonal","contamination check")
+
+        df <- data.frame(filter_name = filter_names,
+                         passed = unlist(selected_run[, paste0(filter_columns, '_pass')], use.names = F),
+                         passed_compare = unlist(selected_run_compare[, paste0(filter_columns, '_pass')], use.names = F),
+                         note = unlist(selected_run[, paste0(filter_columns, '_note')], use.names = F))
+        gicon <- function(x) as.character(icon(x, lib = "glyphicon"))
+        DT::datatable(df %>%
+                        mutate(passed = ifelse(passed, gicon('ok'), gicon('remove')))
+                      %>% mutate(passed_compare = ifelse(passed_compare, gicon('ok'), gicon('remove'))),
+                      selection=list(mode='single'),
+                      options = list(columnDefs = list(list(className = 'dt-center', targets=0:2)),
+                                     pageLength = 50, dom = 't', rownames= FALSE),
+                      colnames = c("Filter" , selected_run$tumor_sample_id, selected_run_compare$tumor_sample_id, "Flag Description"),
+                      escape=F)
+      })
+
+      combined_run <- rbind(selected_run, selected_run_compare)
+      output$datatable_QC_metrics <- DT::renderDataTable({
+        DT::datatable(combined_run %>%
+                        select(-ends_with("note")) %>%
+                        select(-ends_with("pass")) %>%
+                        t,
+                      options = list(
+                        columnDefs = list(
+                          list(targets = "_all", className = 'dt-center')
+                        ),
+                        pageLength = 200,
+                        dom = 't',
+                        rownames = FALSE
+                      ),
+                      colnames = c(""))
+      })
+
+
+
     } else {
       print("Off")
+
+
+        output$datatable_QC_flags <- DT::renderDataTable({
+          filter_columns = c("homdel_filter", "diploid_seg_filter", "waterfall_filter",
+                             "hyper_seg_filter", "high_ploidy_filter", "valid_purity_filter",
+                             "em_cncf_icn_discord_filter", "dipLogR_too_low_filter",
+                             "icn_allelic_state_concordance_filter", "subclonal_genome_filter", "contamination_filter")
+          filter_names = c("Homozygous deletions", "Diploid segments (in dipLogR)", "No Waterfall pattern",
+                           "No hyper segmentation", "Not high ploidy", "Has valid purity",
+                           "em vs. cncf TCN/LCN discordance", "dipLogR not too low",
+                           "ICN is discordant with allelic state ", "High % subclonal","contamination check")
+
+          df <- data.frame(filter_name = filter_names,
+                           passed = unlist(selected_run[, paste0(filter_columns, '_pass')], use.names = F),
+                           note = unlist(selected_run[, paste0(filter_columns, '_note')], use.names = F))
+          gicon <- function(x) as.character(icon(x, lib = "glyphicon"))
+          DT::datatable(df %>%
+                          mutate(passed = ifelse(passed, gicon('ok'), gicon('remove'))),
+                        selection=list(mode='single'),
+                        options = list(columnDefs = list(list(className = 'dt-center', targets=0:2)),
+                                       pageLength = 50, dom = 't', rownames= FALSE),
+                        colnames = c("Filter" , selected_run$tumor_sample_id, "Note"),
+                        escape=F)
+        })
+
+        output$datatable_QC_metrics <- DT::renderDataTable({
+          DT::datatable(selected_run %>%
+                          select(-ends_with("note")) %>%
+                          select(-ends_with("pass")) %>%
+                          t,
+                        options = list(
+                          columnDefs = list(
+                            list(targets = "_all", className = 'dt-center')
+                          ),
+                          pageLength = 200,
+                          dom = 't',
+                          rownames = FALSE
+                        ),
+                        colnames = c(""))
+        })
+
     }
   })
 
