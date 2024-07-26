@@ -20,6 +20,7 @@ library(configr)
 library(R.utils)
 library(shiny)
 library(DT)
+library(shinyWidgets)
 
 source(here::here('R', 'global.R'))
 

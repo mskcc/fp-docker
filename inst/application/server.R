@@ -11,12 +11,72 @@
 #' @import shinyjs
 #' @import rhandsontable
 #' @import gridExtra
+#' @import digest
+
+read_session_data <- function(file_path) {
+  if (file.exists(file_path)) {
+    return(read.table(file_path, header = TRUE, sep = "\t", stringsAsFactors = FALSE))
+  } else {
+    return(NULL)
+  }
+}
 
 server <-
 function(input, output, session) {
   values <- reactiveValues(config_file = ifelse( exists("facets_preview_config_file"), facets_preview_config_file, "<not set>"))
   output$verbatimTextOutput_sessionInfo <- renderPrint({print(sessionInfo())})
   output$verbatimTextOutput_signAs <- renderText({paste0(system('whoami', intern = T))})
+
+  session_data <- reactiveValues(
+    repository_path_impact = NULL,
+    remote_path_impact = NULL,
+    session_switch_impact = NULL,
+    repository_path_tempo = NULL,
+    remote_path_tempo = NULL,
+    session_switch_tempo = NULL,
+    repository_path_tcga = NULL,
+    remote_path_tcga = NULL,
+    session_switch_tcga = NULL,
+    auth_password = NULL,
+    password_valid = NULL
+  )
+
+  valid_hashed_password <- "0c75707e31ad67243d510045c5545401339db24104a5d9947ef57eca0e300307"
+
+  session_data_file <- "~/.fp_session.dat"
+  initial_session_data <- read_session_data(session_data_file)
+  if (!is.null(initial_session_data)) {
+    updateTextInput(session, "repository_path_impact", value = initial_session_data$repository_path_impact)
+    updateTextInput(session, "remote_path_impact", value = initial_session_data$remote_path_impact)
+    updateSwitchInput(session, "session_switch_impact", value = initial_session_data$session_switch_impact)
+
+    updateTextInput(session, "repository_path_tempo", value = initial_session_data$repository_path_tempo)
+    updateTextInput(session, "remote_path_tempo", value = initial_session_data$remote_path_tempo)
+    updateSwitchInput(session, "session_switch_tempo", value = initial_session_data$session_switch_tempo)
+
+    updateTextInput(session, "repository_path_tcga", value = initial_session_data$repository_path_tcga)
+    updateTextInput(session, "remote_path_tcga", value = initial_session_data$remote_path_tcga)
+    updateSwitchInput(session, "session_switch_tcga", value = initial_session_data$session_switch_tcga)
+
+    updateTextInput(session, "auth_password", value = initial_session_data$auth_password)
+
+    # Update the reactiveValues object
+    session_data$repository_path_impact <- initial_session_data$repository_path_impact
+    session_data$remote_path_impact <- initial_session_data$remote_path_impact
+    session_data$session_switch_impact <- initial_session_data$session_switch_impact
+
+    session_data$repository_path_tempo <- initial_session_data$repository_path_tempo
+    session_data$remote_path_tempo <- initial_session_data$remote_path_tempo
+    session_data$session_switch_tempo <- initial_session_data$session_switch_tempo
+
+    session_data$repository_path_tcga <- initial_session_data$repository_path_tcga
+    session_data$remote_path_tcga <- initial_session_data$remote_path_tcga
+    session_data$session_switch_tcga <- initial_session_data$session_switch_tcga
+
+    session_data$auth_password <- initial_session_data$auth_password
+    session_data$password_valid <- 0 #Always assume the password is invalid when reading the file.
+
+  }
 
   observe({
     values$config_file = ifelse( exists("facets_preview_config_file"), facets_preview_config_file, "<not set>")
@@ -312,13 +372,38 @@ function(input, output, session) {
       return(NULL)  # print some kind of error and exit;
     }
 
+
+
     updateNavbarPage(session, "navbarPage1", selected = "tabPanel_reviewFits")
     updateTabsetPanel(session, "reviewTabsetPanel", selected = "png_image_tabset")
     progress <- shiny::Progress$new()
     on.exit(progress$close())
     progress$set(message = "Loading FACETS runs for the selected sample:", value = 0)
-    values$sample_runs <- metadata_init(selected_sample, selected_sample_path, progress)
-    values$sample_runs_compare <- metadata_init(selected_sample, selected_sample_path, progress)
+
+    mount_df <- get_mount_info()
+
+    # Check if selected_sample_path contains any local_path entries
+    matched_row <- mount_df[sapply(mount_df$local_path, function(local_path) {
+      grepl(local_path, selected_sample_path)
+    }), ]
+
+    if (nrow(matched_row) > 0) {
+      # Check if the remote_path contains "/juno/work/"
+      if (any(grepl("/juno/work/", matched_row$remote_path))) {
+        if (session_data$password_valid == 1) {
+          showNotification("You are authorized to make changes to this sample.", type = "message")
+        } else {
+          showNotification("You are not authorized to perform refits or reviews for this sample. Authenticate on the session tab to unlock.", type = "error")
+        }
+      }
+      values$sample_runs <- metadata_init(selected_sample, selected_sample_path, progress, FALSE)
+      values$sample_runs_compare <- metadata_init(selected_sample, selected_sample_path, progress, FALSE)
+    } else {
+      showNotification("You are authorized to make changes to this sample.", type = "message")
+      values$sample_runs <- metadata_init(selected_sample, selected_sample_path, progress)
+      values$sample_runs_compare <- metadata_init(selected_sample, selected_sample_path, progress)
+    }
+
 
     output$verbatimTextOutput_runParams <- renderText({})
     output$verbatimTextOutput_runParams_compare <- renderText({})
@@ -421,6 +506,8 @@ function(input, output, session) {
   observeEvent(input$selectInput_selectSample, {
     #print("ChangeSample")
 
+
+
     if ( is.null(values$sample_runs) || dim(values$sample_runs)[1] == 0) {
       #showModal(modalDialog( title = "Unable to read sample", "Either no runs exist for this sample, or, 'sshfs' mount failed." ))
       return(NULL)  # print some kind of error and exit;
@@ -438,7 +525,20 @@ function(input, output, session) {
     progress <- shiny::Progress$new()
     on.exit(progress$close())
     progress$set(message = "Loading FACETS runs for the selected sample:", value = 0)
-    values$sample_runs <- metadata_init(selected_sample, selected_sample_path, progress)
+
+
+    # Check if we are working on a mounted location.
+    mount_df <- get_mount_info()
+    matched_row <- mount_df[sapply(mount_df$local_path, function(local_path) {
+      grepl(local_path, selected_sample_path)
+    }), ]
+
+    #Don't update remote files if we are mounted.
+    if (nrow(matched_row) > 0) {
+      values$sample_runs <- metadata_init(selected_sample, selected_sample_path, progress,FALSE)
+    } else {
+      values$sample_runs <- metadata_init(selected_sample, selected_sample_path, progress)
+    }
 
     output$verbatimTextOutput_runParams <- renderText({})
     output$imageOutput_pngImage1 <- renderImage({ list(src="", width=0, height=0)}, deleteFile=FALSE)
@@ -489,6 +589,9 @@ function(input, output, session) {
   observeEvent(input$selectInput_selectSample_compare, {
     print("ChangeSample2")
 
+    print(paste("IMPACT Repository Path:", session_data$repository_path_impact))
+
+
     if ( is.null(values$sample_runs_compare) || dim(values$sample_runs_compare)[1] == 0) {
       #showModal(modalDialog( title = "Unable to read sample", "Either no runs exist for this sample, or, 'sshfs' mount failed." ))
       return(NULL)  # print some kind of error and exit;
@@ -506,7 +609,19 @@ function(input, output, session) {
     progress <- shiny::Progress$new()
     on.exit(progress$close())
     progress$set(message = "Loading FACETS runs for the selected sample:", value = 0)
-    values$sample_runs_compare <- metadata_init(selected_sample, selected_sample_path, progress)
+
+    # Check if we are working on a mounted location.
+    mount_df <- get_mount_info()
+    matched_row <- mount_df[sapply(mount_df$local_path, function(local_path) {
+      grepl(local_path, selected_sample_path)
+    }), ]
+
+    #Don't update remote files if we are mounted.
+    if (nrow(matched_row) > 0) {
+      values$sample_runs_compare <- metadata_init(selected_sample, selected_sample_path, progress,FALSE)
+    } else {
+      values$sample_runs_compare <- metadata_init(selected_sample, selected_sample_path, progress)
+    }
 
     output$verbatimTextOutput_runParams_compare <- renderText({})
     output$imageOutput_pngImage2 <- renderImage({ list(src="", width=0, height=0)}, deleteFile=FALSE)
@@ -557,6 +672,8 @@ function(input, output, session) {
   observeEvent(input$selectInput_selectFit, {
 
     print("UpdateInput_SelectFit")
+
+    print(getwd())
 
     output$verbatimTextOutput_runParams <- renderText({})
     output$imageOutput_pngImage1 <- renderImage({ list(src="", width=0, height=0)}, deleteFile=FALSE)
@@ -830,6 +947,72 @@ function(input, output, session) {
                       escape=F)
       })
 
+      output$datatable_cncf <- DT::renderDataTable({
+        cncf_data1 <- get_cncf_table(input$radioGroupButton_fitType, selected_run)
+        cncf_data2 <- get_cncf_table(input$radioGroupButton_fitType_compare, selected_run_compare)
+
+        if (dim(cncf_data1)[1] == 0 || dim(cncf_data2)[1] == 0) {
+          showModal(modalDialog(title = "CNCF file missing", "Invalid CNCF file"))
+          return()
+        }
+
+        combined_data <- rbind(cncf_data1, cncf_data2)
+
+        DT::datatable(combined_data,
+                      selection = list(mode = 'single'),
+                      options = list(
+                        columnDefs = list(
+                          list(targets = "_all", className = 'dt-center')
+                        ),
+                        pageLength = 50,
+                        rownames = FALSE
+                      ))
+      })
+
+      output$datatable_geneLevel <- DT::renderDataTable({
+        geneLevel_data1 <- get_geneLevel_table(input$radioGroupButton_fitType, selected_run)
+        geneLevel_data2 <- get_geneLevel_table(input$radioGroupButton_fitType_compare, selected_run_compare)
+
+        if (dim(geneLevel_data1)[1] == 0 || dim(geneLevel_data2)[1] == 0) {
+          showModal(modalDialog(title = "Gene Level file missing", "Invalid Gene Level file"))
+          return()
+        }
+
+        combined_geneLevel_data <- rbind(geneLevel_data1, geneLevel_data2)
+
+        DT::datatable(combined_geneLevel_data,
+                      selection = list(mode = 'single'),
+                      options = list(
+                        columnDefs = list(
+                          list(targets = "_all", className = 'dt-center')
+                        ),
+                        pageLength = 50,
+                        rownames = FALSE
+                      ))
+      })
+
+      output$datatable_armLevel <- DT::renderDataTable({
+        armLevel_data1 <- get_armLevel_table(input$radioGroupButton_fitType, selected_run)
+        armLevel_data2 <- get_armLevel_table(input$radioGroupButton_fitType_compare, selected_run_compare)
+
+        if (dim(armLevel_data1)[1] == 0 || dim(armLevel_data2)[1] == 0) {
+          showModal(modalDialog(title = "Arm Level file missing", "Invalid Arm Level file"))
+          return()
+        }
+
+        combined_armLevel_data <- rbind(armLevel_data1, armLevel_data2)
+
+        DT::datatable(combined_armLevel_data,
+                      selection = list(mode = 'single'),
+                      options = list(
+                        columnDefs = list(
+                          list(targets = "_all", className = 'dt-center')
+                        ),
+                        pageLength = 50,
+                        rownames = FALSE
+                      ))
+      })
+
       combined_run <- rbind(selected_run, selected_run_compare)
       output$datatable_QC_metrics <- DT::renderDataTable({
         DT::datatable(combined_run %>%
@@ -847,7 +1030,34 @@ function(input, output, session) {
                       colnames = c(""))
       })
 
+      output$editableSegmentsTable <- rhandsontable::renderRHandsontable({
+        cncf_data1 <- get_cncf_table(input$radioGroupButton_fitType_compare, selected_run_compare) %>%
+          data.frame()
+        cncf_data2 <- get_cncf_table(input$radioGroupButton_fitType, selected_run) %>%
+          data.frame()
 
+        if (dim(cncf_data1)[1] == 0 || dim(cncf_data2)[1] == 0) {
+          showModal(modalDialog(title = "CNCF file missing", "Invalid CNCF file"))
+          return()
+        }
+
+        combined_cncf_data <- rbind(cncf_data1, cncf_data2)
+
+        if (!is.null(combined_cncf_data)) {
+          rhandsontable::rhandsontable(combined_cncf_data, useTypes = FALSE, stretchH = "all") %>%
+            rhandsontable::hot_table(columnSorting = TRUE,
+                                     highlightRow = TRUE,
+                                     highlightCol = TRUE)
+        }
+      })
+
+      observe({
+        if(!is.null(input$editableSegmentsTable$changes$changes)){
+          shinyjs::show("button_saveChanges")
+        }
+      })
+
+      updateCloseups()
 
     } else {
       print("Off")
@@ -876,6 +1086,83 @@ function(input, output, session) {
                         escape=F)
         })
 
+        output$datatable_cncf <- DT::renderDataTable({
+          cncf_data <-
+            get_cncf_table(input$radioGroupButton_fitType, selected_run)
+          if ( dim(cncf_data)[1] == 0 ){
+            showModal(modalDialog( title = "CNCF file missing", "Invalid CNCF file" ))
+            return()
+          }
+          DT::datatable(cncf_data,
+                        selection=list(mode='single'),
+                        options = list(
+                          columnDefs = list(
+                            list(targets = "_all", className = 'dt-center')
+                          ),
+                          pageLength = 50,
+                          rownames = FALSE
+                        ))
+        })
+
+        output$datatable_armLevel <- DT::renderDataTable({
+          armLevel_data <-
+            get_armLevel_table(input$radioGroupButton_fitType, selected_run)
+          if ( dim(armLevel_data)[1] == 0 ){
+            showModal(modalDialog( title = "Arm Level file missing", "Invalid Arm Level file" ))
+            return()
+          }
+          DT::datatable(armLevel_data,
+                        selection=list(mode='single'),
+                        options = list(
+                          columnDefs = list(
+                            list(targets = "_all", className = 'dt-center')
+                          ),
+                          pageLength = 50,
+                          rownames = FALSE
+                        ))
+        })
+
+        output$datatable_geneLevel <- DT::renderDataTable({
+          geneLevel_data <-
+            get_geneLevel_table(input$radioGroupButton_fitType, selected_run)
+          if ( dim(geneLevel_data)[1] == 0 ){
+            showModal(modalDialog( title = "Gene Level file missing", "Invalid Gene Level file" ))
+            return()
+          }
+          DT::datatable(geneLevel_data,
+                        selection=list(mode='single'),
+                        options = list(
+                          columnDefs = list(
+                            list(targets = "_all", className = 'dt-center')
+                          ),
+                          pageLength = 50,
+                          rownames = FALSE
+                        ))
+        })
+
+        output$editableSegmentsTable <- rhandsontable::renderRHandsontable({
+          cncf_data <-
+            get_cncf_table(input$radioGroupButton_fitType, selected_run) %>%
+            data.frame()
+          if ( dim(cncf_data)[1] == 0 ){
+            showModal(modalDialog( title = "CNCF file missing", "Invalid CNCF file" ))
+            return()
+          }
+          if (!is.null(cncf_data)) {
+            rhandsontable::rhandsontable(cncf_data,
+                                         useTypes=FALSE, stretchH = "all") %>%
+              rhandsontable::hot_table(columnSorting = TRUE,
+                                       highlightRow = TRUE,
+                                       highlightCol = TRUE)
+          }
+        })
+
+        observe({
+          if(!is.null(input$editableSegmentsTable$changes$changes)){
+            shinyjs::show("button_saveChanges")
+          }
+        })
+
         output$datatable_QC_metrics <- DT::renderDataTable({
           DT::datatable(selected_run %>%
                           select(-ends_with("note")) %>%
@@ -891,6 +1178,8 @@ function(input, output, session) {
                         ),
                         colnames = c(""))
         })
+
+        updateCloseups()
 
     }
   })
@@ -1045,6 +1334,42 @@ function(input, output, session) {
                     ))
     })
 
+    output$datatable_geneLevel <- DT::renderDataTable({
+      geneLevel_data <-
+        get_geneLevel_table(input$radioGroupButton_fitType, selected_run)
+      if ( dim(geneLevel_data)[1] == 0 ){
+        showModal(modalDialog( title = "Gene Level file missing", "Invalid Gene Level file" ))
+        return()
+      }
+      DT::datatable(geneLevel_data,
+                    selection=list(mode='single'),
+                    options = list(
+                      columnDefs = list(
+                        list(targets = "_all", className = 'dt-center')
+                      ),
+                      pageLength = 50,
+                      rownames = FALSE
+                    ))
+    })
+
+    output$datatable_armLevel <- DT::renderDataTable({
+      armLevel_data <-
+        get_armLevel_table(input$radioGroupButton_fitType, selected_run)
+      if ( dim(armLevel_data)[1] == 0 ){
+        showModal(modalDialog( title = "Arm Level file missing", "Invalid Arm Level file" ))
+        return()
+      }
+      DT::datatable(armLevel_data,
+                    selection=list(mode='single'),
+                    options = list(
+                      columnDefs = list(
+                        list(targets = "_all", className = 'dt-center')
+                      ),
+                      pageLength = 50,
+                      rownames = FALSE
+                    ))
+    })
+
     output$editableSegmentsTable <- rhandsontable::renderRHandsontable({
       cncf_data <-
         get_cncf_table(input$radioGroupButton_fitType, selected_run) %>%
@@ -1081,9 +1406,10 @@ function(input, output, session) {
     },
     deleteFile = FALSE)
 
-    output$plotOutput_closeup <- renderPlot ({
-      list(src="", width=0, height=0)
-    })
+    #output$plotOutput_closeup <- renderPlot ({
+    #  list(src="", width=0, height=0)
+    #})
+    updateCloseups()
   })
 
 
@@ -1104,70 +1430,125 @@ function(input, output, session) {
     output$verbatimTextOutput_runParams_compare <- renderText({})
     output$imageOutput_pngImage2 <- renderImage({ list(src="", width=0, height=0)}, deleteFile=FALSE)
 
-    selected_run <- values$sample_runs_compare[which(values$sample_runs_compare$fit_name == paste0(input$selectInput_selectFit_compare)),]
+    selected_run <- values$sample_runs[which(values$sample_runs$fit_name == paste0(input$selectInput_selectFit)),]
+    selected_run_compare <- values$sample_runs_compare[which(values$sample_runs_compare$fit_name == paste0(input$selectInput_selectFit_compare)),]
 
     shinyjs::hideElement("button_saveChanges")
     output$verbatimTextOutput_runParams_compare <- renderText({
       if (input$radioGroupButton_fitType_compare == "Hisens") {
-        paste0("purity: ", selected_run$hisens_run_Purity[1], ", ",
-               "ploidy: ", selected_run$hisens_run_Ploidy[1], ", ",
-               "dipLogR: ", selected_run$hisens_run_dipLogR[1], "\n",
-               "facets_lib: ", selected_run$hisens_run_version[1])
+        paste0("purity: ", selected_run_compare$hisens_run_Purity[1], ", ",
+               "ploidy: ", selected_run_compare$hisens_run_Ploidy[1], ", ",
+               "dipLogR: ", selected_run_compare$hisens_run_dipLogR[1], "\n",
+               "facets_lib: ", selected_run_compare$hisens_run_version[1])
       } else {
-        paste0("purity: ", selected_run$purity_run_Purity[1], ", ",
-               "ploidy: ", selected_run$purity_run_Ploidy[1], ", ",
-               "dipLogR: ", selected_run$purity_run_dipLogR[1], "\n",
-               "facets_lib: ", selected_run$purity_run_version[1], "\n",
-               "alt dipLogR: ", selected_run$purity_run_alBalLogR[1])
+        paste0("purity: ", selected_run_compare$purity_run_Purity[1], ", ",
+               "ploidy: ", selected_run_compare$purity_run_Ploidy[1], ", ",
+               "dipLogR: ", selected_run_compare$purity_run_dipLogR[1], "\n",
+               "facets_lib: ", selected_run_compare$purity_run_version[1], "\n",
+               "alt dipLogR: ", selected_run_compare$purity_run_alBalLogR[1])
       }
     })
 
-#    output$datatable_cncf <- DT::renderDataTable({
-#      cncf_data <-
-#        get_cncf_table(input$radioGroupButton_fitType, selected_run)
-#      if ( dim(cncf_data)[1] == 0 ){
-#        showModal(modalDialog( title = "CNCF file missing", "Invalid CNCF file" ))
-#        return()
-#      }
-#      DT::datatable(cncf_data,
-#                    selection=list(mode='single'),
-#                    options = list(
-#                      columnDefs = list(
-#                        list(targets = "_all", className = 'dt-center')
-#                      ),
-#                      pageLength = 50,
-#                      rownames = FALSE
-#                    ))
-#    })
+    output$datatable_cncf <- DT::renderDataTable({
+      cncf_data1 <- get_cncf_table(input$radioGroupButton_fitType, selected_run)
+      cncf_data2 <- get_cncf_table(input$radioGroupButton_fitType_compare, selected_run_compare)
 
-#    output$editableSegmentsTable <- rhandsontable::renderRHandsontable({
-#      cncf_data <-
-#        get_cncf_table(input$radioGroupButton_fitType, selected_run) %>%
-#        data.frame()
-#      if ( dim(cncf_data)[1] == 0 ){
-#        showModal(modalDialog( title = "CNCF file missing", "Invalid CNCF file" ))
-#        return()
-#      }
-#      if (!is.null(cncf_data)) {
-#        rhandsontable::rhandsontable(cncf_data,
-#                                     useTypes=FALSE, stretchH = "all") %>%
-#          rhandsontable::hot_table(columnSorting = TRUE,
-#                                   highlightRow = TRUE,
-#                                   highlightCol = TRUE)
-#      }
-#    })
+      if (dim(cncf_data1)[1] == 0 || dim(cncf_data2)[1] == 0) {
+        showModal(modalDialog(title = "CNCF file missing", "Invalid CNCF file"))
+        return()
+      }
 
-#    observe({
-#      if(!is.null(input$editableSegmentsTable$changes$changes)){
-#        shinyjs::show("button_saveChanges")
-#      }
-#    })
+      combined_data <- rbind(cncf_data1, cncf_data2)
+
+      DT::datatable(combined_data,
+                    selection = list(mode = 'single'),
+                    options = list(
+                      columnDefs = list(
+                        list(targets = "_all", className = 'dt-center')
+                      ),
+                      pageLength = 50,
+                      rownames = FALSE
+                    ))
+    })
+
+    output$datatable_geneLevel <- DT::renderDataTable({
+      geneLevel_data1 <- get_geneLevel_table(input$radioGroupButton_fitType, selected_run)
+      geneLevel_data2 <- get_geneLevel_table(input$radioGroupButton_fitType_compare, selected_run_compare)
+
+      if (dim(geneLevel_data1)[1] == 0 || dim(geneLevel_data2)[1] == 0) {
+        showModal(modalDialog(title = "Gene Level file missing", "Invalid Gene Level file"))
+        return()
+      }
+
+      combined_geneLevel_data <- rbind(geneLevel_data1, geneLevel_data2)
+
+      DT::datatable(combined_geneLevel_data,
+                    selection = list(mode = 'single'),
+                    options = list(
+                      columnDefs = list(
+                        list(targets = "_all", className = 'dt-center')
+                      ),
+                      pageLength = 50,
+                      rownames = FALSE
+                    ))
+    })
+
+
+    output$datatable_armLevel <- DT::renderDataTable({
+      armLevel_data1 <- get_armLevel_table(input$radioGroupButton_fitType, selected_run)
+      armLevel_data2 <- get_armLevel_table(input$radioGroupButton_fitType_compare, selected_run_compare)
+
+      if (dim(armLevel_data1)[1] == 0 || dim(armLevel_data2)[1] == 0) {
+        showModal(modalDialog(title = "Arm Level file missing", "Invalid Arm Level file"))
+        return()
+      }
+
+      combined_armLevel_data <- rbind(armLevel_data1, armLevel_data2)
+
+      DT::datatable(combined_armLevel_data,
+                    selection = list(mode = 'single'),
+                    options = list(
+                      columnDefs = list(
+                        list(targets = "_all", className = 'dt-center')
+                      ),
+                      pageLength = 50,
+                      rownames = FALSE
+                    ))
+    })
+
+
+    output$editableSegmentsTable <- rhandsontable::renderRHandsontable({
+      cncf_data1 <- get_cncf_table(input$radioGroupButton_fitType, selected_run) %>%
+        data.frame()
+      cncf_data2 <- get_cncf_table(input$radioGroupButton_fitType_compare, selected_run_compare) %>%
+        data.frame()
+
+      if (dim(cncf_data1)[1] == 0 || dim(cncf_data2)[1] == 0) {
+        showModal(modalDialog(title = "CNCF file missing", "Invalid CNCF file"))
+        return()
+      }
+
+      combined_cncf_data <- rbind(cncf_data1, cncf_data2)
+
+      if (!is.null(combined_cncf_data)) {
+        rhandsontable::rhandsontable(combined_cncf_data, useTypes = FALSE, stretchH = "all") %>%
+          rhandsontable::hot_table(columnSorting = TRUE,
+                                   highlightRow = TRUE,
+                                   highlightCol = TRUE)
+      }
+    })
+
+    observe({
+      if(!is.null(input$editableSegmentsTable$changes$changes)){
+        shinyjs::show("button_saveChanges")
+      }
+    })
 
     output$imageOutput_pngImage2 <- renderImage({
       if (input$radioGroupButton_fitType_compare == "Hisens") {
-        png_filename = paste0(selected_run$hisens_run_prefix[1], ".CNCF.png")
+        png_filename = paste0(selected_run_compare$hisens_run_prefix[1], ".CNCF.png")
       } else {
-        png_filename = paste0(selected_run$purity_run_prefix[1], ".CNCF.png")
+        png_filename = paste0(selected_run_compare$purity_run_prefix[1], ".CNCF.png")
       }
       if (!file.exists(png_filename)) {
         png_filename = gsub("\\.CNCF", "", png_filename)
@@ -1176,9 +1557,10 @@ function(input, output, session) {
     },
     deleteFile = FALSE)
 
-#    output$plotOutput_closeup <- renderPlot ({
-#      list(src="", width=0, height=0)
-#    })
+    #output$plotOutput_closeup <- renderPlot ({
+    #  list(src="", width=0, height=0)
+    #})
+    updateCloseups()
   })
 
 
@@ -1211,7 +1593,18 @@ function(input, output, session) {
     shinyjs::hideElement("button_saveChanges")
   })
 
+
   observeEvent(input$button_closeUpView, {
+
+    print("CloseUp!")
+
+    updateCloseups();
+
+  })
+
+  updateCloseups <- function() {
+
+    print("CloseUp!")
 
     if (input$selectInput_selectFit == "Not selected") {
       output$verbatimTextOutput_runParams <- renderText({})
@@ -1222,35 +1615,402 @@ function(input, output, session) {
     selected_run <-
       values$sample_runs[which(values$sample_runs$fit_name == paste0(input$selectInput_selectFit)),]
 
+    if(input$compareFitsCheck)
+    {
+      selected_run_compare <-
+        values$sample_runs_compare[which(values$sample_runs_compare$fit_name == paste0(input$selectInput_selectFit_compare)),]
+    }
+
     selected_gene = input$textInput_geneForCloseup
+    values$selected_closeup_gene = input$textInput_geneForCloseup
     if (selected_gene == "") {
-      showModal(modalDialog( title = "No action", "Enter a gene name to get the closeup" ))
+      #showModal(modalDialog( title = "No action", "Enter a gene name to get the closeup" ))
       return(NULL)
     }
-    output$plotOutput_closeup <- renderPlot ({
-      if (input$radioGroupButton_fitType == "Hisens") {
-        rdata_file = paste0(selected_run$hisens_run_prefix[1], ".Rdata")
-      } else {
-        rdata_file = paste0(selected_run$purity_run_prefix[1], ".Rdata")
+
+
+    if(input$compareFitsCheck)
+    {
+      output$plotOutput_closeup <- renderPlot ({
+        if (input$radioGroupButton_fitType == "Hisens") {
+          rdata_file = paste0(selected_run$hisens_run_prefix[1], ".Rdata")
+          rdata_file_compare = paste0(selected_run_compare$hisens_run_prefix[1], ".Rdata")
+        } else {
+          rdata_file = paste0(selected_run$purity_run_prefix[1], ".Rdata")
+          rdata_file_compare = paste0(selected_run_compare$purity_run_prefix[1], ".Rdata")
+        }
+
+        load(rdata_file)
+        out1 <- out
+        fit1 <- fit
+
+        load(rdata_file_compare)
+        out2 <- out
+        fit2 <- fit
+
+        closeup_output1 <- close.up(out1, fit1, gene.name=selected_gene,
+                                    cached.gene.path =
+                                      system.file("data/Homo_sapiens.GRCh37.75.gene_positions.txt",
+                                                  package="facetsPreview"))
+
+        closeup_output2 <- close.up(out2, fit2, gene.name=selected_gene,
+                                    cached.gene.path =
+                                      system.file("data/Homo_sapiens.GRCh37.75.gene_positions.txt",
+                                                  package="facetsPreview"))
+
+        header1 <- grid::textGrob(selected_run$tumor_sample_id, gp=grid::gpar(fontsize=14, fontface="bold"))
+        header2 <- grid::textGrob(selected_run_compare$tumor_sample_id,, gp=grid::gpar(fontsize=14, fontface="bold"))
+
+        # Combine the plots from both datasets
+        plot1 <- gridExtra::grid.arrange(
+          closeup_output1$cnlr, closeup_output1$valor,
+          closeup_output1$icnem, closeup_output1$cfem,
+          ncol = 1,
+          top = paste0(selected_run$tumor_sample_id,
+                       ": ", selected_gene,
+                       " | ", closeup_output1$chrom,
+                       ":", closeup_output1$start,
+                       "-", closeup_output1$end)
+        )
+
+
+
+        # Create the plot for Dataset 2
+        plot2 <- gridExtra::grid.arrange(
+          closeup_output2$cnlr, closeup_output2$valor,
+          closeup_output2$icnem, closeup_output2$cfem,
+          ncol = 1,
+          top = paste0(selected_run_compare$tumor_sample_id,
+                       ": ", selected_gene,
+                       " | ", closeup_output2$chrom,
+                       ":", closeup_output2$start,
+                       "-", closeup_output2$end)
+        )
+
+        # Render both plots side by side with headers
+        gridExtra::grid.arrange(plot1, plot2, ncol = 2)
+      })
+    }
+    else
+    {
+      output$plotOutput_closeup <- renderPlot ({
+        if (input$radioGroupButton_fitType == "Hisens") {
+          rdata_file = paste0(selected_run$hisens_run_prefix[1], ".Rdata")
+        } else {
+          rdata_file = paste0(selected_run$purity_run_prefix[1], ".Rdata")
+        }
+        load(rdata_file)
+        closeup_output <- close.up(out, fit, gene.name=selected_gene,
+                                   cached.gene.path =
+                                     system.file("data/Homo_sapiens.GRCh37.75.gene_positions.txt",
+                                                 package="facetsPreview"))
+        gridExtra::grid.arrange(closeup_output$cnlr,
+                                closeup_output$valor,
+                                closeup_output$icnem,
+                                closeup_output$cfem,
+                                ncol=1, nrow=4, top = paste0(selected_gene,
+                                                             " ", closeup_output$chrom,
+                                                             ":", closeup_output$start,
+                                                             "-", closeup_output$end))
+      })
+    }
+  }
+
+  # Observe changes to the impact switch
+  observeEvent(input$session_switch_impact, {
+    if (!input$session_switch_impact && !validate_path(input$remote_path_impact)) {
+      updateTextInput(session, "remote_path_impact", value = "/juno/work/ccs/shared/resources/impact/facets/all/")
+    }
+  })
+
+  # Observe changes to the tempo switch
+  observeEvent(input$session_switch_tempo, {
+    if (!input$session_switch_tempo && !validate_path(input$remote_path_tempo)) {
+      updateTextInput(session, "remote_path_tempo", value = "/juno/work/ccs/")
+    }
+  })
+
+  # Observe changes to the tcga switch
+  observeEvent(input$session_switch_tcga, {
+    if (!input$session_switch_tcga && !validate_path(input$remote_path_tcga)) {
+      updateTextInput(session, "remote_path_tcga", value = "/juno/work/ccs/shared/resources/tcga/facets/all/")
+    }
+  })
+
+  # Regular expression for validating paths, considering empty paths as valid
+  valid_path_regex <- "^(/[^/ ]*)+/?$|^$"
+
+  # Function to validate a path
+  validate_path <- function(path) {
+    grepl(valid_path_regex, path)
+  }
+
+  ensure_trailing_slash <- function(path) {
+    if (nchar(path) > 0 && substr(path, nchar(path), nchar(path)) != "/") {
+      return(paste0(path, "/"))
+    }
+    return(path)
+  }
+
+  clean_and_ensure_trailing_slash <- function(path) {
+    path <- trimws(path)  # Strip whitespace from both sides
+    if (nchar(path) > 0 && substr(path, nchar(path), nchar(path)) != "/") {
+      return(paste0(path, "/"))
+    }
+    return(path)
+  }
+
+  get_mount_info <- function() {
+    # Execute the "mount" command and capture its output
+    mount_output <- system("mount", intern = TRUE)
+
+    # Initialize a data frame to store the parsed paths
+    mount_df <- data.frame(remote_path = character(), local_path = character(), stringsAsFactors = FALSE)
+
+    # Regular expression to extract the two paths
+    path_regex <- "(^.+):(/juno/[^ ]+) on ([^ ]+) "
+
+    # Loop through each line in the mount output
+    for (line in mount_output) {
+      if (grepl("/juno/work/", line)) {
+        matches <- regmatches(line, regexec(path_regex, line))
+        if (length(matches[[1]]) == 4) {  # Ensure we have three parts matched
+          remote_path <- ensure_trailing_slash(matches[[1]][3])
+          local_path <- ensure_trailing_slash(matches[[1]][4])
+          # Append the paths to the data frame
+          mount_df <- rbind(mount_df, data.frame(remote_path = remote_path, local_path = local_path, stringsAsFactors = FALSE))
+        }
       }
-      load(rdata_file)
-      closeup_output <- close.up(out, fit, gene.name=selected_gene,
-                                 cached.gene.path =
-                                   system.file("data/Homo_sapiens.GRCh37.75.gene_positions.txt",
-                                               package="facetsPreview"))
-      gridExtra::grid.arrange(closeup_output$cnlr,
-                   closeup_output$valor,
-                   closeup_output$icnem,
-                   closeup_output$cfem,
-                   ncol=1, nrow=4, top = paste0(selected_gene,
-                                                " ", closeup_output$chrom,
-                                                ":", closeup_output$start,
-                                                "-", closeup_output$end))
-    })
+    }
+
+    print(mount_df)
+    return(mount_df)
+  }
+
+
+  observeEvent(input$update_session, {
+    # Clean and ensure all paths end with a '/'
+    repository_path_impact <- clean_and_ensure_trailing_slash(input$repository_path_impact)
+    remote_path_impact <- clean_and_ensure_trailing_slash(input$remote_path_impact)
+    repository_path_tempo <- clean_and_ensure_trailing_slash(input$repository_path_tempo)
+    remote_path_tempo <- clean_and_ensure_trailing_slash(input$remote_path_tempo)
+    repository_path_tcga <- clean_and_ensure_trailing_slash(input$repository_path_tcga)
+    remote_path_tcga <- clean_and_ensure_trailing_slash(input$remote_path_tcga)
+
+    # Update input boxes to reflect the trailing slash
+    updateTextInput(session, "repository_path_impact", value = repository_path_impact)
+    updateTextInput(session, "remote_path_impact", value = remote_path_impact)
+    updateTextInput(session, "repository_path_tempo", value = repository_path_tempo)
+    updateTextInput(session, "remote_path_tempo", value = remote_path_tempo)
+    updateTextInput(session, "repository_path_tcga", value = repository_path_tcga)
+    updateTextInput(session, "remote_path_tcga", value = remote_path_tcga)
+
+    # Validate paths
+    valid_impact_repo <- validate_path(repository_path_impact) && (!input$session_switch_impact || repository_path_impact != "")
+    valid_impact_remote <- validate_path(remote_path_impact) && (!input$session_switch_impact || remote_path_impact != "")
+    valid_tempo_repo <- validate_path(repository_path_tempo) && (!input$session_switch_tempo || repository_path_tempo != "")
+    valid_tempo_remote <- validate_path(remote_path_tempo) && (!input$session_switch_tempo || remote_path_tempo != "")
+    valid_tcga_repo <- validate_path(repository_path_tcga) && (!input$session_switch_tcga || repository_path_tcga != "")
+    valid_tcga_remote <- validate_path(remote_path_tcga) && (!input$session_switch_tcga || remote_path_tcga != "")
+
+    # Check all validations and print errors if any
+    if (!valid_impact_repo) {
+      showNotification("Invalid or missing IMPACT repository path.", type = "error")
+    }
+    if (!valid_impact_remote) {
+      showNotification("Invalid or missing IMPACT remote path when Use Mount is enabled.", type = "error")
+    }
+    if (!valid_tempo_repo) {
+      showNotification("Invalid or missing TEMPO repository path.", type = "error")
+    }
+    if (!valid_tempo_remote) {
+      showNotification("Invalid or missing TEMPO remote path when Use Mount is enabled.", type = "error")
+    }
+    if (!valid_tcga_repo) {
+      showNotification("Invalid or missing TCGA repository path.", type = "error")
+    }
+    if (!valid_tcga_remote) {
+      showNotification("Invalid or missing TCGA remote path when Use Mount is enabled.", type = "error")
+    }
+
+    # Get the mount information
+    mount_df <- get_mount_info()
+
+    # Function to check and update paths and switches
+    check_and_update_paths <- function(repo_path, remote_path_id, switch_id, session_remote_path) {
+      for (i in 1:nrow(mount_df)) {
+        if (repo_path == mount_df$local_path[i]) {
+          updateSwitchInput(session, switch_id, value = TRUE)
+          updateTextInput(session, remote_path_id, value = mount_df$remote_path[i])
+          session_data[[session_remote_path]] <- mount_df$remote_path[i]
+          print(paste("MATCHES", mount_df$remote_path[i]))
+          return(TRUE)
+        }
+      }
+      return(FALSE)
+    }
+
+    # Check and update for each repository path
+    if (!check_and_update_paths(repository_path_impact, "remote_path_impact", "session_switch_impact", "remote_path_impact") &&
+        !check_and_update_paths(repository_path_tempo, "remote_path_tempo", "session_switch_tempo", "remote_path_tempo") &&
+        !check_and_update_paths(repository_path_tcga, "remote_path_tcga", "session_switch_tcga", "remote_path_tcga")) {
+
+      # Only proceed if all paths are valid and no matches were found
+      if (valid_impact_repo && valid_impact_remote && valid_tempo_repo && valid_tempo_remote && valid_tcga_repo && valid_tcga_remote) {
+        # Use plain text password
+        plain_text_password <- input$auth_password
+
+        # Update the reactiveValues object with the current inputs
+        session_data$repository_path_impact <- repository_path_impact
+        session_data$remote_path_impact <- remote_path_impact
+        session_data$session_switch_impact <- input$session_switch_impact
+
+        session_data$repository_path_tempo <- repository_path_tempo
+        session_data$remote_path_tempo <- remote_path_tempo
+        session_data$session_switch_tempo <- input$session_switch_tempo
+
+        session_data$repository_path_tcga <- repository_path_tcga
+        session_data$remote_path_tcga <- remote_path_tcga
+        session_data$session_switch_tcga <- input$session_switch_tcga
+
+        session_data$auth_password <- plain_text_password  # Store the plain text password
+
+        # Write the session data to a file
+        session_data_df <- data.frame(
+          repository_path_impact = session_data$repository_path_impact %||% "",
+          remote_path_impact = session_data$remote_path_impact %||% "",
+          session_switch_impact = session_data$session_switch_impact %||% "",
+          repository_path_tempo = session_data$repository_path_tempo %||% "",
+          remote_path_tempo = session_data$remote_path_tempo %||% "",
+          session_switch_tempo = session_data$session_switch_tempo %||% "",
+          repository_path_tcga = session_data$repository_path_tcga %||% "",
+          remote_path_tcga = session_data$remote_path_tcga %||% "",
+          session_switch_tcga = session_data$session_switch_tcga %||% "",
+          auth_password = session_data$auth_password %||% "",
+          password_valid = session_data$password_valid %||% "",
+          stringsAsFactors = FALSE
+        )
+        write.table(session_data_df, file = "~/.fp_session.dat", row.names = FALSE, col.names = TRUE, sep = "\t")
+
+        # Show a green notification that the session data was saved
+        showNotification("Session data saved to ~/.fp_session.dat", type = "message")
+
+        # Get the mount information
+        juno_lines <- get_mount_info()
+
+        # Print the lines containing "/juno/work/"
+        if (length(juno_lines) > 0) {
+          print("Mount paths containing '/juno/work/':")
+          print(juno_lines)
+        } else {
+          print("No mount paths containing '/juno/work/' found.")
+        }
+      }
+    }
+
+    # Check if the hashed password matches the valid hashed password, only if a password is provided and any Use Mount is enabled
+    if (input$auth_password != "" && (input$session_switch_impact || input$session_switch_tempo || input$session_switch_tcga)) {
+      hashed_password <- digest(input$auth_password, algo = "sha256")
+      session_data$auth_password <- hashed_password
+      if (session_data$auth_password == valid_hashed_password) {
+        session_data$password_valid <- 1
+        showNotification("Authenticated", type = "message")
+        print("match")
+      } else {
+        session_data$password_valid <- 0
+        showNotification("Invalid password", type = "error")
+        print("not match")
+      }
+    } else {
+      session_data$password_valid <- 0
+    }
+
+    # Print all values to the console for debugging
+    print(session_data)
+
+  })
+
+  observeEvent(input$continue_session, {
+    # Simulate a click on the update_session button
+    shinyjs::click("update_session")
+
+    # Move to the next tab after a short delay to ensure the update_session logic runs first
+    later::later(function() {
+      updateTabsetPanel(session, "navbarPage1", selected = "tabPanel_sampleInput")
+    }, delay = 0.1)  # Adjust the delay as necessary
   })
 
 
+  observeEvent(input$repository_path_impact, {
+    repository_path_impact <- input$repository_path_impact
+
+    # Return immediately if the repository path is empty
+    if (repository_path_impact == "") {
+      return(NULL)
+    }
+
+    mount_df <- get_mount_info()
+    print(repository_path_impact)
+
+    # Use grepl with fixed = TRUE for exact matching
+    matched_row <- mount_df[grepl(repository_path_impact, mount_df$local_path, fixed = TRUE), ]
+
+    if (nrow(matched_row) > 0) {
+      updateTextInput(session, "remote_path_impact", value = matched_row$remote_path)
+      session_data$remote_path_impact <- matched_row$remote_path
+      updateSwitchInput(session, "session_switch_impact", value = TRUE)
+    }
+  })
+
+  observeEvent(input$repository_path_tempo, {
+    repository_path_tempo <- input$repository_path_tempo
+
+    # Return immediately if the repository path is empty
+    if (repository_path_tempo == "") {
+      return(NULL)
+    }
+
+    mount_df <- get_mount_info()
+    print(repository_path_tempo)
+
+    # Use grepl with fixed = TRUE for exact matching
+    matched_row <- mount_df[grepl(repository_path_tempo, mount_df$local_path, fixed = TRUE), ]
+
+    if (nrow(matched_row) > 0) {
+      updateTextInput(session, "remote_path_tempo", value = matched_row$remote_path)
+      session_data$remote_path_tempo <- matched_row$remote_path
+      updateSwitchInput(session, "session_switch_tempo", value = TRUE)
+    }
+  })
+
+  observeEvent(input$repository_path_tcga, {
+    repository_path_tcga <- input$repository_path_tcga
+
+    # Return immediately if the repository path is empty
+    if (repository_path_tcga == "") {
+      return(NULL)
+    }
+
+    mount_df <- get_mount_info()
+    print(repository_path_tcga)
+
+    # Use grepl with fixed = TRUE for exact matching
+    matched_row <- mount_df[grepl(repository_path_tcga, mount_df$local_path, fixed = TRUE), ]
+
+    if (nrow(matched_row) > 0) {
+      updateTextInput(session, "remote_path_tcga", value = matched_row$remote_path)
+      session_data$remote_path_tcga <- matched_row$remote_path
+      updateSwitchInput(session, "session_switch_tcga", value = TRUE)
+    }
+  })
+
+
+
   observeEvent(input$button_refit, {
+
+
+
+
 
     if (input$selectInput_selectFit == "Not selected") {
       showModal(modalDialog(
@@ -1299,6 +2059,25 @@ function(input, output, session) {
       selected_run <- values$sample_runs[which(values$sample_runs$fit_name == paste0(input$selectInput_selectFit)),]
     }
 
+    mount_df <- get_mount_info()
+
+    # Check if selected_sample_path contains any local_path entries
+    matched_row <- mount_df[sapply(mount_df$local_path, function(local_path) {
+      grepl(local_path, selected_run$path[1])
+    }), ]
+
+    if (nrow(matched_row) > 0) {
+      # Check if the remote_path contains "/juno/work/"
+      if (any(grepl("/juno/work/", matched_row$remote_path))) {
+        if (session_data$password_valid == 1) {
+          showNotification("Authorized Refit.", type = "message")
+        } else {
+          showNotification("You are not authorized to perform refits for this sample. Authenticate on the session tab to unlock.", type = "error")
+          return(NULL)
+        }
+      }
+    }
+
     run_path = selected_run$path[1]
     new_purity_c = input$textInput_newPurityCval
     new_hisens_c = input$textInput_newHisensCval
@@ -1343,6 +2122,7 @@ function(input, output, session) {
     cmd_script_pfx = paste0(run_path, "/refit_jobs/facets_refit_cmd_")
 
     refit_dir <- paste0(run_path, refit_name)
+
     facets_lib_path = supported_facets_versions[version==facets_version_to_use]$lib_path
 
     counts_file_name = glue("{run_path}/countsMerged____{sample_id}.dat.gz")
@@ -1404,7 +2184,7 @@ function(input, output, session) {
     ))
     values$submitted_refit <- c(values$submitted_refit, refit_dir)
 
-    system(refit_cmd, intern = TRUE)
+  #  system(refit_cmd, intern = TRUE)
 
   })
 }

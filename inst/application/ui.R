@@ -6,6 +6,7 @@
 #' @importFrom DT datatable
 #' @import shinyjs
 #' @import rhandsontable
+#' @import shinyWidgets
 
 ## to keep the text boxes inline.
 textInputRow<-function (inputId, label, value = "") {
@@ -24,6 +25,115 @@ ui <-
     navbarPage(
       "FACETS Preview",
       id="navbarPage1",
+
+      tabPanel("Session",
+               value = "tabPanel_session",
+               mainPanel(
+                 wellPanel(
+                   style = "background-color: #EEEEEE; border-color: #DDDDDD; padding: 20px;",
+                   div(
+                     style = "text-align:left; padding: 20px;",
+                     h4("Session Configuration", style = "font-weight: bold; color: black;"),
+                     fluidRow(
+                       column(10,  # Increase the width to take up more space
+                              # Repository Configuration: IMPACT
+                              div(
+                                h5("Repository Configuration: IMPACT", style = "font-weight: bold; color: black;"),
+                                div(
+                                  style = "padding-left: 20px;",  # Adjust this value for individual elements if needed
+                                  div("Local Repository Path:"),
+                                  textInput(inputId = "repository_path_impact", label = NULL, value = "", width = "100%"),  # Set the width of the text input
+                                  switchInput(
+                                    inputId = "session_switch_impact",
+                                    label = "Use Mount",
+                                    value = FALSE,  # Set default to "No"
+                                    onLabel = "Yes",
+                                    offLabel = "No",
+                                    size = "small",
+                                    inline = TRUE,
+                                    labelWidth = "100px"
+                                  ),
+                                  conditionalPanel(
+                                    condition = "input.session_switch_impact == true",
+                                    div("Remote Repository Path:", style = "padding-top: 10px;"),
+                                    textInput(inputId = "remote_path_impact", label = NULL, value = "/juno/work/ccs/shared/resources/impact/facets/all/", width = "100%")
+                                  )
+                                )
+                              ),
+                              # Repository Configuration: TEMPO
+                              div(
+                                h5("Repository Configuration: TEMPO", style = "font-weight: bold; color: black;"),
+                                div(
+                                  style = "padding-left: 20px;",  # Adjust this value for individual elements if needed
+                                  div("Local Repository Path:"),
+                                  textInput(inputId = "repository_path_tempo", label = NULL, value = "", width = "100%"),  # Set the width of the text input
+                                  switchInput(
+                                    inputId = "session_switch_tempo",
+                                    label = "Use Mount",
+                                    value = FALSE,  # Set default to "No"
+                                    onLabel = "Yes",
+                                    offLabel = "No",
+                                    size = "small",
+                                    inline = TRUE,
+                                    labelWidth = "100px"
+                                  ),
+                                  conditionalPanel(
+                                    condition = "input.session_switch_tempo == true",
+                                    div("Remote Repository Path:", style = "padding-top: 10px;"),
+                                    textInput(inputId = "remote_path_tempo", label = NULL, value = "/juno/work/ccs/shared/resources/tempo/facets/all/", width = "100%")
+                                  )
+                                )
+                              ),
+                              # Repository Configuration: TCGA
+                              div(
+                                h5("Repository Configuration: TCGA", style = "font-weight: bold; color: black;"),
+                                div(
+                                  style = "padding-left: 20px;",  # Adjust this value for individual elements if needed
+                                  div("Local Repository Path:"),
+                                  textInput(inputId = "repository_path_tcga", label = NULL, value = "", width = "100%"),  # Set the width of the text input
+                                  switchInput(
+                                    inputId = "session_switch_tcga",
+                                    label = "Use Mount",
+                                    value = FALSE,  # Set default to "No"
+                                    onLabel = "Yes",
+                                    offLabel = "No",
+                                    size = "small",
+                                    inline = TRUE,
+                                    labelWidth = "100px"
+                                  ),
+                                  conditionalPanel(
+                                    condition = "input.session_switch_tcga == true",
+                                    div("Remote Repository Path:", style = "padding-top: 10px;"),
+                                    textInput(inputId = "remote_path_tcga", label = NULL, value = "/juno/work/ccs/shared/resources/tcga/facets/all/", width = "100%")
+                                  )
+                                )
+                              )
+                       )
+                     ),
+                     # Password and red text section at the bottom
+                     conditionalPanel(
+                       condition = "input.session_switch_impact == true || input.session_switch_tempo == true || input.session_switch_tcga == true",
+                       div(
+                         style = "color: red; padding-left: 20px; padding-top: 10px;",
+                         "This is a restricted location. Refits and best fits must be authenticated."
+                       ),
+                       div(
+                         style = "padding-left: 20px; padding-top: 10px; width: 50%;",  # Adjust the width of the password field
+                         passwordInput(inputId = "auth_password", label = "Password", value = "", width = "100%")
+                       )
+                     ),
+                     # Update Session and Continue buttons
+                     div(
+                       style = "padding-left: 20px; padding-top: 20px;",
+                       actionButton(inputId = "update_session", label = "Update Session", class = "btn-primary"),
+                       actionButton(inputId = "continue_session", label = "Continue", class = "btn-primary", style = "margin-left: 10px;")
+                     )
+                   )
+                 ),
+                 width = 12
+               )
+      ),
+
       tabPanel("Load Samples",
                value="tabPanel_sampleInput",
                mainPanel(
@@ -108,12 +218,18 @@ ui <-
                         ),
                         wellPanel(
                           style = "padding-left: 5px; padding-right: 5px; padding-top: 5px; padding-bottom: 5px;", # Adjust padding as needed
-                          div(style = "display: inline-block;",
-                              h4(strong("Compare Fits"))
-                          ),
+
                           div(style = "display: inline-block; vertical-align: middle; margin-top: 10px;",
-                              div(style = "position: relative; left: 10px; top: -5px; transform: scale(1.5);",
-                                  checkboxInput("compareFitsCheck", label = NULL)
+                              div(style = "position: relative; left: 10px; top: -5px; transform: scale(1);",
+                                  shinyWidgets::switchInput(
+                                    inputId = "compareFitsCheck",
+                                    label = "Compare Fits",
+                                    value = FALSE,  # Set default to off
+                                    onLabel = "On",
+                                    offLabel = "Off",
+                                    size = "small",
+                                    labelWidth = "100px"
+                                  )
                               )
                           )
                         ),
@@ -210,6 +326,10 @@ ui <-
                                                     width='100%')),
                                      plotOutput(outputId = "plotOutput_closeup", height="600px")
                                      ),
+                            tabPanel("Gene-Level",
+                                     mainPanel(DT::dataTableOutput("datatable_geneLevel"), width=12)),
+                            tabPanel("Arm-Level",
+                                     mainPanel(DT::dataTableOutput("datatable_armLevel"), width=12)),
                             tabPanel("Segments",
                                      mainPanel(DT::dataTableOutput("datatable_cncf"), width=12)),
                             tabPanel("Segments (editable)",
