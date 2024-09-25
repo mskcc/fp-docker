@@ -288,12 +288,25 @@ metadata_init <- function(sample_id, sample_path, progress = NULL, update_qc_fil
   facets_runs$is_best_fit[which(facets_runs$fit_name == best_fit)] = T
 
   if (update_qc_file) {
-    if (verify_access_to_write(sample_path)) {
-      write.table(facets_runs %>% select(-ends_with("_filter_note")),
-                  file=paste0(sample_path, '/facets_qc.txt'), quote=F, row.names=F, sep='\t')
-      print("UPDAEQC")
+    # Find any file that ends with "facets_qc.txt"
+    qc_file <- list.files(sample_path, pattern = "facets_qc\\.txt$", full.names = TRUE)
+
+    # Determine if there is an existing facets_qc.txt file or use a default
+    if (length(qc_file) == 0) {
+      # No facets_qc.txt file found, so we will create one named "facets_qc.txt"
+      qc_file <- file.path(sample_path, "facets_qc.txt")
     } else {
-      warning(paste0('You do not have write permissions to update ', sample_path, '/facets_qc.txt file'))
+      # Use the first matching file found
+      qc_file <- qc_file[1]
+    }
+
+    # Check write permissions
+    if (verify_access_to_write(sample_path)) {
+      # Write the updated facets_qc.txt file (either the existing one or the new one)
+      write.table(facets_runs %>% select(-ends_with("_filter_note")),
+                  file = qc_file, quote = FALSE, row.names = FALSE, sep = "\t")
+    } else {
+      warning(paste0('You do not have write permissions to update ', qc_file))
     }
   }
 
@@ -385,28 +398,41 @@ get_review_status <- function(sample_id, sample_path) {
 #' @export update_best_fit_status
 update_best_fit_status <- function(sample_id, sample_path) {
 
+  # Find any file that ends with "facets_qc.txt"
+  qc_file <- list.files(sample_path, pattern = "facets_qc\\.txt$", full.names = TRUE)
+
+  if (length(qc_file) == 0) {
+    stop(paste0("No facets_qc.txt file found in ", sample_path))
+  }
+
+  # Get review status for the sample
   reviews <-
     get_review_status(sample_id, sample_path) %>%
     filter(!(fit_name == 'Not selected'))
 
-  ### determine if the sample has at least an acceptable_fit; get the most recent review
-  ### and determine if the status is 'reviewed_best_fit' or 'reviewed_acceptable_fit'
-  best_fit = (reviews %>%
-                arrange(desc(date_reviewed)) %>%
-                filter(review_status %in% c('reviewed_acceptable_fit',
-                                            'reviewed_best_fit')))$fit_name[1]
+  # Determine if the sample has at least an acceptable fit; get the most recent review
+  # and determine if the status is 'reviewed_best_fit' or 'reviewed_acceptable_fit'
+  best_fit <- (reviews %>%
+                 arrange(desc(date_reviewed)) %>%
+                 filter(review_status %in% c('reviewed_acceptable_fit',
+                                             'reviewed_best_fit')))$fit_name[1]
 
-  facets_runs <- fread(paste0(sample_path, '/facets_qc.txt'))
-  facets_runs$is_best_fit = F
-  facets_runs$is_best_fit[which(facets_runs$fit_name == best_fit)] = T
+  # Load the facets_qc.txt file (first match found)
+  facets_runs <- fread(qc_file[1])
 
+  # Set all is_best_fit to FALSE and then mark the correct fit as TRUE
+  facets_runs$is_best_fit <- FALSE
+  facets_runs$is_best_fit[which(facets_runs$fit_name == best_fit)] <- TRUE
+
+  # Check if we have access to write
   if (verify_access_to_write(sample_path)) {
     write.table(facets_runs %>% select(-ends_with("_filter_note")),
-                file=paste0(sample_path, '/facets_qc.txt'), quote=F, row.names=F, sep='\t')
+                file = qc_file[1], quote = FALSE, row.names = FALSE, sep = "\t")
   } else {
-    warning(paste0('You do not have write permissions to update ', sample_path, '/facets_qc.txt file'))
+    warning(paste0("You do not have write permissions to update ", qc_file[1]))
   }
 }
+
 
 #' helper function for app
 #'
@@ -428,29 +454,31 @@ has_permissions_to_write <- function(path) {
 #' @return True/False
 #' @export verify_access_to_write
 verify_access_to_write <- function(sample_path) {
-  review_file = paste0(sample_path, '/facets_review.manifest')
-  qc_file = paste0(sample_path, '/facets_qc.txt')
+  review_file <- file.path(sample_path, 'facets_review.manifest')
 
-  can_edit_review = F
+  # Find any file that ends with "facets_qc.txt"
+  qc_file <- list.files(sample_path, pattern = "facets_qc\\.txt$", full.names = TRUE)
+
+  can_edit_review <- FALSE
   if (file.exists(review_file)) {
-    #can_edit_review = !system(paste0('touch -a -r ', review_file, ' ', review_file), ignore.stderr = T)
-    can_edit_review = !system(paste0('(mv ', review_file, ' ', review_file, '. ; ',
-                                     ' mv ', review_file, '. ', review_file, ') 2> /dev/null'), ignore.stderr = T)
+    can_edit_review <- !system(paste0('(mv ', review_file, ' ', review_file, '. ; ',
+                                      ' mv ', review_file, '. ', review_file, ') 2> /dev/null'), ignore.stderr = TRUE)
   } else {
-    can_edit_review = has_permissions_to_write(sample_path)
+    can_edit_review <- has_permissions_to_write(sample_path)
   }
 
-  can_edit_qc = F
-  if (file.exists(qc_file)) {
-    #can_edit_qc = !system(paste0('touch -c -a -r ', qc_file, ' ', qc_file), ignore.stderr = T)
-    can_edit_qc = !system(paste0('(mv ', qc_file, ' ', qc_file, '. ; ',
-                                 ' mv ', qc_file, '. ', qc_file, ') 2> /dev/null'), ignore.stderr = T)
+  can_edit_qc <- FALSE
+  if (length(qc_file) > 0) {  # Check if any qc file is found
+    # Process the first matching qc_file
+    can_edit_qc <- !system(paste0('(mv ', qc_file[1], ' ', qc_file[1], '. ; ',
+                                  ' mv ', qc_file[1], '. ', qc_file[1], ') 2> /dev/null'), ignore.stderr = TRUE)
   } else {
-    can_edit_qc = has_permissions_to_write(sample_path)
+    can_edit_qc <- has_permissions_to_write(sample_path)
   }
 
   return (can_edit_review & can_edit_qc)
 }
+
 
 #' helper function for app
 #'

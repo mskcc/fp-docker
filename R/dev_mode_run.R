@@ -21,6 +21,8 @@ library(R.utils)
 library(shiny)
 library(DT)
 library(shinyWidgets)
+library(shinyFiles)
+library(digest)
 
 source(here::here('R', 'global.R'))
 

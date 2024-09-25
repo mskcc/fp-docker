@@ -31,7 +31,8 @@ Imports:
     configr,
     R.utils,
     shinyWidgets,
-    digest
+    digest,
+    shinyFiles
 License: GNU Affero General Public License v3.0
 Encoding: UTF-8
 LazyData: true
