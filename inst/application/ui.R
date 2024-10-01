@@ -123,7 +123,7 @@ ui <-
                                   style = "padding-left: 20px;",
                                   div("Local Repository Path:"),
                                   textInput(inputId = "repository_path_impact", label = NULL, value = "", width = "100%"),
-                                  switchInput(
+                                  shinyWidgets::switchInput(
                                     inputId = "session_switch_impact",
                                     label = "Use Mount",
                                     value = FALSE,  # Set default to "No"
@@ -155,7 +155,7 @@ ui <-
                                     style = "padding-left: 20px;",
                                     div("Local Repository Path:"),
                                     textInput(inputId = "repository_path_tempo", label = NULL, value = "", width = "100%"),
-                                    switchInput(
+                                    shinyWidgets::switchInput(
                                       inputId = "session_switch_tempo",
                                       label = "Use Mount",
                                       value = FALSE,  # Set default to "No"
@@ -186,7 +186,7 @@ ui <-
                                   style = "padding-left: 20px;",
                                   div("Local Repository Path:"),
                                   textInput(inputId = "repository_path_tcga", label = NULL, value = "", width = "100%"),
-                                  switchInput(
+                                  shinyWidgets::switchInput(
                                     inputId = "session_switch_tcga",
                                     label = "Use Mount",
                                     value = FALSE,  # Set default to "No"
@@ -216,7 +216,7 @@ ui <-
                                   style = "padding-left: 20px;",
                                   div("Local Refit Path:"),
                                   textInput(inputId = "mount_refit_path", label = NULL, value = "", width = "100%"),
-                                  switchInput(
+                                  shinyWidgets::switchInput(
                                     inputId = "session_remote_refit",
                                     label = "Connected",
                                     value = FALSE,  # Set default to "No"
