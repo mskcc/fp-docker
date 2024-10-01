@@ -79,19 +79,19 @@ function(input, output, session) {
 
     updateTextInput(session, "mount_refit_path", value = initial_session_data$mount_refit_path)
     updateTextInput(session, "remote_refit_path", value = initial_session_data$remote_refit_path)
-    updateSwitchInput(session, "session_remote_refit", value = initial_session_data$session_remote_refit)
+    shinyWidgets::updateSwitchInput(session, "session_remote_refit", value = initial_session_data$session_remote_refit)
 
     updateTextInput(session, "repository_path_impact", value = initial_session_data$repository_path_impact)
     updateTextInput(session, "remote_path_impact", value = initial_session_data$remote_path_impact)
-    updateSwitchInput(session, "session_switch_impact", value = initial_session_data$session_switch_impact)
+    shinyWidgets::updateSwitchInput(session, "session_switch_impact", value = initial_session_data$session_switch_impact)
 
     updateTextInput(session, "repository_path_tempo", value = initial_session_data$repository_path_tempo)
     updateTextInput(session, "remote_path_tempo", value = initial_session_data$remote_path_tempo)
-    updateSwitchInput(session, "session_switch_tempo", value = initial_session_data$session_switch_tempo)
+    shinyWidgets::updateSwitchInput(session, "session_switch_tempo", value = initial_session_data$session_switch_tempo)
 
     updateTextInput(session, "repository_path_tcga", value = initial_session_data$repository_path_tcga)
     updateTextInput(session, "remote_path_tcga", value = initial_session_data$remote_path_tcga)
-    updateSwitchInput(session, "session_switch_tcga", value = initial_session_data$session_switch_tcga)
+    shinyWidgets::updateSwitchInput(session, "session_switch_tcga", value = initial_session_data$session_switch_tcga)
 
     updateTextInput(session, "auth_password", value = initial_session_data$auth_password)
 
@@ -720,7 +720,7 @@ function(input, output, session) {
           easyClose = TRUE,
           footer = modalButton("OK")
         ))
-        updateSwitchInput(session, "storageType", value = TRUE)
+        shinyWidgets::updateSwitchInput(session, "storageType", value = TRUE)
         return()  # Exit the observer since no further action should be taken
       }
 
@@ -936,7 +936,7 @@ function(input, output, session) {
           easyClose = TRUE,
           footer = modalButton("OK")
         ))
-        updateSwitchInput(session, "storageType_compare", value = TRUE)
+        shinyWidgets::updateSwitchInput(session, "storageType_compare", value = TRUE)
         return()  # Exit the observer since no further action should be taken
       }
 
@@ -1144,13 +1144,13 @@ function(input, output, session) {
         {
           shinyjs::show("use_remote_refit_switch")
           shinyjs::show("remote_refit_options")
-          updateSwitchInput(session, "use_remote_refit_switch", value = TRUE)
+          shinyWidgets::updateSwitchInput(session, "use_remote_refit_switch", value = TRUE)
         }
         else
         {
           shinyjs::hide("use_remote_refit_switch")
           shinyjs::hide("remote_refit_options")
-          updateSwitchInput(session, "use_remote_refit_switch", value = FALSE)
+          shinyWidgets::updateSwitchInput(session, "use_remote_refit_switch", value = FALSE)
         }
       } else {
         shinyjs::hide("fitPanel")
@@ -1167,13 +1167,13 @@ function(input, output, session) {
         shinyjs::show("storageTypeDiv_compare")
         if(is_remote_file(selected_sample_path))
         {
-          updateSwitchInput(session, "storageType", value = TRUE)
-          updateSwitchInput(session, "storageType_compare", value = TRUE)
+          shinyWidgets::updateSwitchInput(session, "storageType", value = TRUE)
+          shinyWidgets::updateSwitchInput(session, "storageType_compare", value = TRUE)
         }
         else
         {
-          updateSwitchInput(session, "storageType", value = FALSE)
-          updateSwitchInput(session, "storageType_compare", value = FALSE)
+          shinyWidgets::updateSwitchInput(session, "storageType", value = FALSE)
+          shinyWidgets::updateSwitchInput(session, "storageType_compare", value = FALSE)
         }
       } else {
         shinyjs::hide("storageTypeDiv")
@@ -1337,7 +1337,7 @@ function(input, output, session) {
     personal_repo_meta_file <- file.path(session_data$personal_storage_path, ".fp_personal.dat")
     if (!file.exists(personal_repo_meta_file)) {
       print(".fp_personal.dat file does not exist.")
-      updateSwitchInput(session, "storageType", value = TRUE)
+      shinyWidgets::updateSwitchInput(session, "storageType", value = TRUE)
     }
 
     # Read the .fp_personal.dat file into a data frame
@@ -1349,11 +1349,11 @@ function(input, output, session) {
     if (in_personal) {
       # If the path is in the Personal column, set storageType to false
       print("Sample path is in the Personal column. Setting storageType to false.")
-      updateSwitchInput(session, "storageType", value = FALSE)
+      shinyWidgets::updateSwitchInput(session, "storageType", value = FALSE)
     } else {
       # If the path is not in the Personal column, set storageType to true
       print("Sample path is not in the Personal column. Setting storageType to true.")
-      updateSwitchInput(session, "storageType", value = TRUE)
+      shinyWidgets::updateSwitchInput(session, "storageType", value = TRUE)
     }
 
     #Hide/show refit box when necessary.
@@ -1364,13 +1364,13 @@ function(input, output, session) {
         {
           shinyjs::show("use_remote_refit_switch")
           shinyjs::show("remote_refit_options")
-          updateSwitchInput(session, "use_remote_refit_switch", value = TRUE)
+          shinyWidgets::updateSwitchInput(session, "use_remote_refit_switch", value = TRUE)
         }
         else
         {
           shinyjs::hide("use_remote_refit_switch")
           shinyjs::hide("remote_refit_options")
-          updateSwitchInput(session, "use_remote_refit_switch", value = FALSE)
+          shinyWidgets::updateSwitchInput(session, "use_remote_refit_switch", value = FALSE)
         }
       } else {
         shinyjs::hide("fitPanel")
@@ -1477,7 +1477,7 @@ function(input, output, session) {
     personal_repo_meta_file <- file.path(session_data$personal_storage_path, ".fp_personal.dat")
     if (!file.exists(personal_repo_meta_file)) {
       print(".fp_personal.dat file does not exist.")
-      updateSwitchInput(session, "storageType_compare", value = TRUE)
+      shinyWidgets::updateSwitchInput(session, "storageType_compare", value = TRUE)
     }
 
     # Read the .fp_personal.dat file into a data frame
@@ -1489,11 +1489,11 @@ function(input, output, session) {
     if (in_personal) {
       # If the path is in the Personal column, set storageType to false
       print("Sample path is in the Personal column. Setting storageType to false.")
-      updateSwitchInput(session, "storageType_compare", value = FALSE)
+      shinyWidgets::updateSwitchInput(session, "storageType_compare", value = FALSE)
     } else {
       # If the path is not in the Personal column, set storageType to true
       print("Sample path is not in the Personal column. Setting storageType to true.")
-      updateSwitchInput(session, "storageType_compare", value = TRUE)
+      shinyWidgets::updateSwitchInput(session, "storageType_compare", value = TRUE)
     }
 
 
@@ -1824,7 +1824,7 @@ function(input, output, session) {
     # ...
 
     # Turn off the switch
-    updateMaterialSwitch(session, "dynamic_dipLogR", value = FALSE)
+    shinyWidgets::updateMaterialSwitch(session, "dynamic_dipLogR", value = FALSE)
   })
 
 
@@ -2400,8 +2400,8 @@ function(input, output, session) {
       shinyjs::runjs("$('#displayModeSwitchDiv_geneLevel').removeClass('hidden');")
       shinyjs::runjs("$('#displayModeSwitchDiv_armLevel').removeClass('hidden');")
 
-      updateSwitchInput(session, "displayMode_geneLevel", value = input$displayMode_geneLevel)
-      updateSwitchInput(session, "displayMode_armLevel", value = input$displayMode_armLevel)
+      shinyWidgets::updateSwitchInput(session, "displayMode_geneLevel", value = input$displayMode_geneLevel)
+      shinyWidgets::updateSwitchInput(session, "displayMode_armLevel", value = input$displayMode_armLevel)
 
       if (input$displayOptionsSwitch_geneLevel) {
         shinyjs::show("displayModeSwitchDiv_geneLevel", anim = TRUE, animType = "slide")
@@ -2419,8 +2419,8 @@ function(input, output, session) {
       shinyjs::runjs("$('#displayModeSwitchDiv_geneLevel').addClass('hidden');")
       shinyjs::runjs("$('#displayModeSwitchDiv_armLevel').addClass('hidden');")
 
-      updateSwitchInput(session, "displayMode_geneLevel", value = TRUE)
-      updateSwitchInput(session, "displayMode_armLevel", value = TRUE)
+      shinyWidgets::updateSwitchInput(session, "displayMode_geneLevel", value = TRUE)
+      shinyWidgets::updateSwitchInput(session, "displayMode_armLevel", value = TRUE)
     }
   })
 
@@ -2995,7 +2995,7 @@ function(input, output, session) {
 
     # If no valid mount path is found, set the switch to false
     if (nrow(matched_row) == 0) {
-      updateSwitchInput(session, "session_remote_refit", value = FALSE)
+      shinyWidgets::updateSwitchInput(session, "session_remote_refit", value = FALSE)
     }
   })
 
@@ -3019,7 +3019,7 @@ function(input, output, session) {
 
     # If no valid mount path is found, set the switch to false
     if (nrow(matched_row) == 0) {
-      updateSwitchInput(session, "session_switch_impact", value = FALSE)
+      shinyWidgets::updateSwitchInput(session, "session_switch_impact", value = FALSE)
     }
   })
 
@@ -3044,7 +3044,7 @@ function(input, output, session) {
 
     # If no valid mount path is found, set the switch to false
     if (nrow(matched_row) == 0) {
-      updateSwitchInput(session, "session_switch_tempo", value = FALSE)
+      shinyWidgets::updateSwitchInput(session, "session_switch_tempo", value = FALSE)
     }
   })
 
@@ -3068,7 +3068,7 @@ function(input, output, session) {
 
     # If no valid mount path is found, set the switch to false
     if (nrow(matched_row) == 0) {
-      updateSwitchInput(session, "session_switch_tcga", value = FALSE)
+      shinyWidgets::updateSwitchInput(session, "session_switch_tcga", value = FALSE)
     }
   })
 
@@ -3205,7 +3205,7 @@ function(input, output, session) {
     check_and_update_paths <- function(repo_path, remote_path_id, switch_id, session_remote_path) {
       for (i in 1:nrow(mount_df)) {
         if (repo_path == mount_df$local_path[i]) {
-          updateSwitchInput(session, switch_id, value = TRUE)
+          shinyWidgets::updateSwitchInput(session, switch_id, value = TRUE)
           updateTextInput(session, remote_path_id, value = mount_df$remote_path[i])
           session_data[[session_remote_path]] <- mount_df$remote_path[i]
           print(paste("MATCHES", mount_df$remote_path[i]))
@@ -3434,11 +3434,11 @@ function(input, output, session) {
     if (nrow(matched_row) > 0) {
       updateTextInput(session, "remote_refit_path", value = matched_row$remote_path)
       session_data$remote_refit_path <- matched_row$remote_path
-      updateSwitchInput(session, "session_remote_refit", value = TRUE)
+      shinyWidgets::updateSwitchInput(session, "session_remote_refit", value = TRUE)
     } else {
       updateTextInput(session, "remote_refit_path", value = "")
       session_data$remote_refit_path <- ""
-      updateSwitchInput(session, "session_remote_refit", value = FALSE)
+      shinyWidgets::updateSwitchInput(session, "session_remote_refit", value = FALSE)
     }
   })
 
@@ -3461,13 +3461,13 @@ function(input, output, session) {
     if (nrow(matched_row) > 0) {
       updateTextInput(session, "remote_path_impact", value = matched_row$remote_path)
       session_data$remote_path_impact <- matched_row$remote_path
-      updateSwitchInput(session, "session_switch_impact", value = TRUE)
+      shinyWidgets::updateSwitchInput(session, "session_switch_impact", value = TRUE)
     }
     else
     {
       updateTextInput(session, "remote_path_impact", value = "")
       session_data$remote_path_impact <- ""
-      updateSwitchInput(session, "session_switch_impact", value = FALSE)
+      shinyWidgets::updateSwitchInput(session, "session_switch_impact", value = FALSE)
     }
   })
 
@@ -3489,13 +3489,13 @@ function(input, output, session) {
     if (nrow(matched_row) > 0) {
       updateTextInput(session, "remote_path_tempo", value = matched_row$remote_path)
       session_data$remote_path_tempo <- matched_row$remote_path
-      updateSwitchInput(session, "session_switch_tempo", value = TRUE)
+      shinyWidgets::updateSwitchInput(session, "session_switch_tempo", value = TRUE)
     }
     else
     {
       updateTextInput(session, "remote_path_tempo", value = "")
       session_data$remote_path_tempo <- ""
-      updateSwitchInput(session, "session_switch_tempo", value = FALSE)
+      shinyWidgets::updateSwitchInput(session, "session_switch_tempo", value = FALSE)
     }
   })
 
@@ -3517,13 +3517,13 @@ function(input, output, session) {
     if (nrow(matched_row) > 0) {
       updateTextInput(session, "remote_path_tcga", value = matched_row$remote_path)
       session_data$remote_path_tcga <- matched_row$remote_path
-      updateSwitchInput(session, "session_switch_tcga", value = TRUE)
+      shinyWidgets::updateSwitchInput(session, "session_switch_tcga", value = TRUE)
     }
     else
     {
       updateTextInput(session, "remote_path_tcga", value = "")
       session_data$remote_path_tcga <- ""
-      updateSwitchInput(session, "session_switch_tcga", value = FALSE)
+      shinyWidgets::updateSwitchInput(session, "session_switch_tcga", value = FALSE)
     }
   })
 
