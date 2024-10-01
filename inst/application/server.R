@@ -1208,7 +1208,7 @@ function(input, output, session) {
       }
     })
 
-    print("ROW")
+    #print("ROW")
     #print(matched_row)
     #print(selected_sample_path)
     #print(is_remote_file(selected_sample_path))
@@ -1293,6 +1293,8 @@ function(input, output, session) {
                       choices = as.list(c("Not selected", unlist(values$sample_runs$fit_name))),
                       selected = "Not selected"
     )
+
+    set_default_countFile()
 
 
     if (nrow(selected_run) > 0) {
@@ -1410,7 +1412,7 @@ function(input, output, session) {
    # print(values$manifest_metadata)
     #print(input$selectInput_selectSample)
 
-    set_default_countFile()
+    #set_default_countFile()
 
     progress <- shiny::Progress$new()
     on.exit(progress$close())
@@ -1474,6 +1476,8 @@ function(input, output, session) {
                         choices = as.list(values$config$facets_lib$version),
                         selected = selected_run$purity_run_version)
     }
+
+    set_default_countFile()
   }
 
 
@@ -3441,22 +3445,34 @@ function(input, output, session) {
   }
 
   observeEvent(input$fileInput_pileup, {
+    # Filter the selected run and determine the run path
     selected_run <- values$sample_runs %>% filter(fit_name == 'default') %>% head(n = 1)
 
     if (nrow(selected_run) == 0) {
       selected_run <- values$sample_runs[which(values$sample_runs$fit_name == paste0(input$selectInput_selectFit)),]
     }
 
-    run_path <- selected_run$path[1]
-    file_info <- shinyFiles::parseFilePaths(roots = c(current_run = run_path), input$fileInput_pileup)
-    file_path <- as.character(file_info$datapath)
+    run_path <- selected_run$path[1]  # Get the first path
+    print(run_path)
 
-    # Check if file_path is not NULL and has a length greater than 0
+    # Set up shinyFileChoose with the current run path as the root
+    shinyFiles::shinyFileChoose(input, "fileInput_pileup", roots = c(current_run = run_path), session = session)
+
+    # Parse the file path selected by the user
+    file_info <- shinyFiles::parseFilePaths(roots = c(current_run = run_path), input$fileInput_pileup)
+    print(file_info)
+
+    # Extract the file path as a character string
+    file_path <- as.character(file_info$datapath)
+    print(file_path)
+
+    # Check if file_path is valid and update the reactive value
     if (!is.null(file_path) && length(file_path) > 0 && file_path != "") {
-      selected_counts_file(file_path)
+      selected_counts_file(file_path)  # Set the selected file path
       showNotification(paste("Selected counts file is", selected_counts_file()), type = "message")
     }
   })
+
 
 
 
@@ -3918,7 +3934,7 @@ function(input, output, session) {
     facets_lib_path = supported_facets_versions[version==facets_version_to_use]$lib_path
 
     #counts_file_name = glue("{run_path}/countsMerged____{sample_id}.dat.gz")
-    #counts_file_name = selected_counts_file()
+    counts_file_name = selected_counts_file()
     if(is.null(counts_file_name))
     {
       set_default_countFile()
@@ -4074,6 +4090,8 @@ function(input, output, session) {
     if (!input$use_remote_refit_switch) {
       system(refit_cmd, intern = TRUE)
     }
+
+    selected_counts_file()
 
 
   })
