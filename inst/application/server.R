@@ -3918,8 +3918,12 @@ function(input, output, session) {
     facets_lib_path = supported_facets_versions[version==facets_version_to_use]$lib_path
 
     #counts_file_name = glue("{run_path}/countsMerged____{sample_id}.dat.gz")
-    counts_file_name = selected_counts_file()
-    print(counts_file_name)
+    #counts_file_name = selected_counts_file()
+    if(is.null(counts_file_name))
+    {
+      set_default_countFile()
+      counts_file_name = selected_counts_file()
+    }
 
     #if (!is.null(values$selected_repo)) {
     #  counts_file_name = glue(paste0("{run_path}/",values$selected_repo$counts_file_format))
