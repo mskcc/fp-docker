@@ -71,7 +71,7 @@ function(input, output, session) {
   valid_personal_password <- "e2b03f0d6b892667621b9f8cfa54353db7d760f72b8c26f4e9577800f8bc4505"
 
   session_data_file <- "~/.fp_session.dat"
-  personal_repo_meta_file <- ".fp_personal.dat"
+  personal_repo_meta_file <- "~/.fp_personal.dat"
   initial_session_data <- read_session_data(session_data_file)
   if (!is.null(initial_session_data)) {
 
@@ -533,9 +533,9 @@ function(input, output, session) {
 
   get_remote_path_from_personal <- function(personal_path) {
     # Ensure the .fp_personal.dat file exists
-    personal_repo_meta_file <- file.path(session_data$personal_storage_path, ".fp_personal.dat")
+    personal_repo_meta_file <- file.path("~/.fp_personal.dat")
     if (!file.exists(personal_repo_meta_file)) {
-      stop(".fp_personal.dat file does not exist.")
+      stop("~/.fp_personal.dat file does not exist.")
     }
 
     # Read the .fp_personal.dat file into a data frame
@@ -589,7 +589,7 @@ function(input, output, session) {
       personal_path <- get_personal_path(selected_sample_path)
 
       # Define the path to the personal repo meta file
-      personal_repo_meta_file <- file.path(session_data$personal_storage_path, ".fp_personal.dat")
+      personal_repo_meta_file <- file.path("~/.fp_personal.dat")
 
       # Check if the .fp_personal.dat file exists
       if (file.exists(personal_repo_meta_file)) {
@@ -640,7 +640,7 @@ function(input, output, session) {
       remote_path <- get_remote_path(selected_sample_path)
 
       # Define the path to the personal repo meta file
-      personal_repo_meta_file <- file.path(session_data$personal_storage_path, ".fp_personal.dat")
+      personal_repo_meta_file <- file.path("~/.fp_personal.dat")
 
       # Check if the file exists; if not, create it
       if (!file.exists(personal_repo_meta_file)) {
@@ -806,7 +806,7 @@ function(input, output, session) {
       personal_path <- get_personal_path(selected_sample_path)
 
       # Define the path to the personal repo meta file
-      personal_repo_meta_file <- file.path(session_data$personal_storage_path, ".fp_personal.dat")
+      personal_repo_meta_file <- file.path("~/.fp_personal.dat")
 
       # Check if the .fp_personal.dat file exists
       if (file.exists(personal_repo_meta_file)) {
@@ -856,7 +856,7 @@ function(input, output, session) {
       remote_path <- get_remote_path(selected_sample_path)
 
       # Define the path to the personal repo meta file
-      personal_repo_meta_file <- file.path(session_data$personal_storage_path, ".fp_personal.dat")
+      personal_repo_meta_file <- file.path("~/.fp_personal.dat")
 
       # Check if the file exists; if not, create it
       if (!file.exists(personal_repo_meta_file)) {
@@ -998,7 +998,7 @@ function(input, output, session) {
     print("Updating manifest metadata with personal paths")
 
     # Ensure the .fp_personal.dat file exists
-    personal_repo_meta_file <- file.path(session_data$personal_storage_path, ".fp_personal.dat")
+    personal_repo_meta_file <- file.path("~/.fp_personal.dat")
     if (!file.exists(personal_repo_meta_file)) {
       stop(".fp_personal.dat file does not exist. Cannot update manifest metadata.")
     }
@@ -1041,7 +1041,7 @@ function(input, output, session) {
     print("Updating manifest metadata with local paths")
 
     # Ensure the .fp_personal.dat file exists
-    personal_repo_meta_file <- file.path(session_data$personal_storage_path, ".fp_personal.dat")
+    personal_repo_meta_file <- file.path("~/.fp_personal.dat")
     if (!file.exists(personal_repo_meta_file)) {
       stop(".fp_personal.dat file does not exist. Cannot update manifest metadata.")
     }
@@ -1334,7 +1334,7 @@ function(input, output, session) {
     }
 
     # Check if .fp_personal.dat file exists
-    personal_repo_meta_file <- file.path(session_data$personal_storage_path, ".fp_personal.dat")
+    personal_repo_meta_file <- file.path("~/.fp_personal.dat")
     if (!file.exists(personal_repo_meta_file)) {
       print(".fp_personal.dat file does not exist.")
       shinyWidgets::updateSwitchInput(session, "storageType", value = TRUE)
@@ -1474,7 +1474,7 @@ function(input, output, session) {
 
 
     # Check if .fp_personal.dat file exists
-    personal_repo_meta_file <- file.path(session_data$personal_storage_path, ".fp_personal.dat")
+    personal_repo_meta_file <- file.path("~/.fp_personal.dat")
     if (!file.exists(personal_repo_meta_file)) {
       print(".fp_personal.dat file does not exist.")
       shinyWidgets::updateSwitchInput(session, "storageType_compare", value = TRUE)
