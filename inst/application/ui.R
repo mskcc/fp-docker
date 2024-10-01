@@ -529,7 +529,7 @@ ui <-
                           ),
 
                           div(style = "width: 100%;",
-                              shinyFilesButton("fileInput_pileup", "Select Counts File",
+                              shinyWidgets::shinyFilesButton("fileInput_pileup", "Select Counts File",
                                                "Please select a file", class = "btn-primary",
                                                style = "width: 100%;", multiple = FALSE)
                           ),
