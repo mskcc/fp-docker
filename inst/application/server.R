@@ -3097,24 +3097,46 @@ function(input, output, session) {
   }
 
   get_mount_info <- function() {
-    # Execute the "mount" command and capture its output
-    mount_output <- system("mount", intern = TRUE)
+    # Define the path to the .fp_mount.dat file
+    fp_mount_file <- path.expand("~/.fp_mount.dat")
 
     # Initialize a data frame to store the parsed paths
     mount_df <- data.frame(remote_path = character(), local_path = character(), stringsAsFactors = FALSE)
 
-    # Regular expression to extract the two paths
-    path_regex <- "(^.+):(/juno/[^ ]+) on ([^ ]+) "
+    # Function to parse a single line into remote_path and local_path
+    parse_mount_line <- function(line) {
+      path_regex <- "(^.+):(/juno/[^ ]+) on ([^ ]+) "
+      matches <- regmatches(line, regexec(path_regex, line))
+      if (length(matches[[1]]) == 4) {  # Ensure we have the correct number of parts
+        remote_path <- ensure_trailing_slash(matches[[1]][3])
+        local_path <- ensure_trailing_slash(matches[[1]][4])
+        return(data.frame(remote_path = remote_path, local_path = local_path, stringsAsFactors = FALSE))
+      }
+      return(NULL)
+    }
 
-    # Loop through each line in the mount output
+    # Check if ~/.fp_mount.dat exists and read it if it does
+    if (file.exists(fp_mount_file)) {
+      file_output <- readLines(fp_mount_file)
+      for (line in file_output) {
+        if (grepl("/juno/work/", line)) {
+          parsed_data <- parse_mount_line(line)
+          if (!is.null(parsed_data)) {
+            mount_df <- rbind(mount_df, parsed_data)
+          }
+        }
+      }
+    }
+
+    # Execute the "mount" command and capture its output
+    mount_output <- system("mount", intern = TRUE)
+
+    # Loop through each line in the mount output and append to the data frame
     for (line in mount_output) {
       if (grepl("/juno/work/", line)) {
-        matches <- regmatches(line, regexec(path_regex, line))
-        if (length(matches[[1]]) == 4) {  # Ensure we have three parts matched
-          remote_path <- ensure_trailing_slash(matches[[1]][3])
-          local_path <- ensure_trailing_slash(matches[[1]][4])
-          # Append the paths to the data frame
-          mount_df <- rbind(mount_df, data.frame(remote_path = remote_path, local_path = local_path, stringsAsFactors = FALSE))
+        parsed_data <- parse_mount_line(line)
+        if (!is.null(parsed_data)) {
+          mount_df <- rbind(mount_df, parsed_data)
         }
       }
     }
