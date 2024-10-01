@@ -3315,7 +3315,7 @@ function(input, output, session) {
 
     # Check if the hashed password matches the valid hashed password, only if a password is provided and any Use Mount is enabled
     if (input$auth_password != "" && (input$session_switch_impact || input$session_switch_tempo || input$session_switch_tcga)) {
-      hashed_password <- digest(input$auth_password, algo = "sha256")
+      hashed_password <- digest::digest(input$auth_password, algo = "sha256")
       session_data$auth_password <- hashed_password
       if (session_data$auth_password == valid_hashed_password) {
         session_data$password_valid <- 1
