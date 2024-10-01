@@ -3420,7 +3420,7 @@ function(input, output, session) {
 
     # Update the select counts file button.
     roots <- c(current_run = run_path)
-    shinyFileChoose(input, "fileInput_pileup", roots = roots, filetypes = c('dat', 'gz'))
+    shinyFiles::shinyFileChoose(input, "fileInput_pileup", roots = roots, filetypes = c('dat', 'gz'))
 
     counts_file_name <- glue::glue("{run_path}/countsMerged____{sample_id}.dat.gz")
 
