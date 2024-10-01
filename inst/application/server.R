@@ -3919,7 +3919,7 @@ function(input, output, session) {
 
     #counts_file_name = glue("{run_path}/countsMerged____{sample_id}.dat.gz")
     counts_file_name = selected_counts_file()
-
+    print(counts_file_name)
 
     #if (!is.null(values$selected_repo)) {
     #  counts_file_name = glue(paste0("{run_path}/",values$selected_repo$counts_file_format))
@@ -4049,7 +4049,9 @@ function(input, output, session) {
     }
 
 
+    print("REFITCMD:")
     print(refit_cmd)
+    print("_______")
 
     #return(NULL)
 
