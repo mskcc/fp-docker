@@ -12,6 +12,7 @@
 #' @import rhandsontable
 #' @import gridExtra
 #' @import digest
+#' @import httr
 
 read_session_data <- function(file_path) {
   if (file.exists(file_path)) {
@@ -3701,19 +3702,16 @@ function(input, output, session) {
 
 
 
-  # Define the relative directory where the help HTML files are stored
-  help_dir <- "../../www/help_files/"  # Relative path from inst/application/
+  # GitHub base URL for the help files
+  base_url <- "https://raw.githubusercontent.com/mskcc/fp-docker/refs/heads/main/www/help_files/"
 
-  # Dynamically generate links for each HTML file in the help directory
+  # List of available help files on GitHub (you may want to dynamically generate this list in production)
+  help_files <- c("Test_file.html")  # Add more file names as needed
+
+  # Dynamically generate links for each HTML file from GitHub
   output$help_links <- renderUI({
-    # List all .html files in the help directory
-    html_files <- list.files(help_dir, pattern = "\\.html$", full.names = FALSE)
-
-    # Print the files for debugging (to ensure the correct path is used)
-    print(html_files)
-
     # Create a link for each HTML file
-    links <- lapply(html_files, function(file) {
+    links <- lapply(help_files, function(file) {
       file_name <- gsub("_", " ", tools::file_path_sans_ext(basename(file)))  # Create a readable link text
       actionLink(inputId = file, label = file_name, style = "cursor: pointer;")
     })
@@ -3722,25 +3720,31 @@ function(input, output, session) {
     do.call(tagList, links)
   })
 
-  # For each file, create an observeEvent to capture the link click and load the HTML file
-  html_files <- list.files(help_dir, pattern = "\\.html$", full.names = FALSE)
-
   # Create an observer for each file link
-  lapply(html_files, function(file) {
+  lapply(help_files, function(file) {
     observeEvent(input[[file]], {
-      # If the link is clicked, read the corresponding HTML file
-      file_path <- file.path(help_dir, file)
+      # Construct the full URL for the file on GitHub
+      file_url <- paste0(base_url, file)
 
-      # Try reading the file and rendering it to the UI
-      help_content <- paste(readLines(file_path, warn = FALSE), collapse = "\n")
+      # Try fetching the file from the GitHub URL
+      response <- GET(file_url)
 
-      # Display the HTML content in the help_content UI
-      output$help_content <- renderUI({
-        HTML(help_content)
-      })
+      if (status_code(response) == 200) {
+        # If the request was successful, get the content and display it
+        help_content <- content(response, as = "text", encoding = "UTF-8")
+
+        # Display the HTML content in the help_content UI
+        output$help_content <- renderUI({
+          HTML(help_content)
+        })
+      } else {
+        # Handle error if the file could not be fetched
+        output$help_content <- renderUI({
+          HTML("<p>Error: Help file could not be loaded.</p>")
+        })
+      }
     })
   })
-
 
   observeEvent(input$button_refit, {
 
