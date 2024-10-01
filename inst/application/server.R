@@ -535,7 +535,8 @@ function(input, output, session) {
     # Ensure the .fp_personal.dat file exists
     personal_repo_meta_file <- file.path("~/.fp_personal.dat")
     if (!file.exists(personal_repo_meta_file)) {
-      stop("~/.fp_personal.dat file does not exist.")
+      create_personal_storage_file()
+      #stop("~/.fp_personal.dat file does not exist.")
     }
 
     # Read the .fp_personal.dat file into a data frame
@@ -559,6 +560,30 @@ function(input, output, session) {
 
   library(shiny)
   library(shinyjs)
+
+  create_personal_storage_file <- function()
+  {
+    # Define the path to the personal repo meta file
+    personal_repo_meta_file <- path.expand("~/.fp_personal.dat")
+
+    # Check if the file exists; if not, create it
+    if (!file.exists(personal_repo_meta_file)) {
+      # File does not exist, create it
+      print("Creating .fp_personal.dat file")
+
+      # Initialize an empty data frame with just the headers
+      df <- data.frame(
+        Remote = character(),
+        Local = character(),
+        Personal = character(),
+        stringsAsFactors = FALSE
+      )
+
+      # Write the data frame with only headers to the file in tab-delimited format
+      write.table(df, file = personal_repo_meta_file, sep = "\t", row.names = FALSE, col.names = TRUE)
+    }
+  }
+
 
   observeEvent(input$storageType, {
 
@@ -1000,7 +1025,8 @@ function(input, output, session) {
     # Ensure the .fp_personal.dat file exists
     personal_repo_meta_file <- file.path("~/.fp_personal.dat")
     if (!file.exists(personal_repo_meta_file)) {
-      stop(".fp_personal.dat file does not exist. Cannot update manifest metadata.")
+      create_personal_storage_file()
+      #stop(".fp_personal.dat file does not exist. Cannot update manifest metadata.")
     }
 
     # Read the .fp_personal.dat file into a data frame
@@ -1043,7 +1069,8 @@ function(input, output, session) {
     # Ensure the .fp_personal.dat file exists
     personal_repo_meta_file <- file.path("~/.fp_personal.dat")
     if (!file.exists(personal_repo_meta_file)) {
-      stop(".fp_personal.dat file does not exist. Cannot update manifest metadata.")
+      create_personal_storage_file()
+      #stop(".fp_personal.dat file does not exist. Cannot update manifest metadata.")
     }
 
     # Read the .fp_personal.dat file into a data frame
@@ -1337,6 +1364,7 @@ function(input, output, session) {
     personal_repo_meta_file <- file.path("~/.fp_personal.dat")
     if (!file.exists(personal_repo_meta_file)) {
       print(".fp_personal.dat file does not exist.")
+      create_personal_storage_file()
       shinyWidgets::updateSwitchInput(session, "storageType", value = TRUE)
     }
 
@@ -1477,6 +1505,7 @@ function(input, output, session) {
     personal_repo_meta_file <- file.path("~/.fp_personal.dat")
     if (!file.exists(personal_repo_meta_file)) {
       print(".fp_personal.dat file does not exist.")
+      create_personal_storage_file()
       shinyWidgets::updateSwitchInput(session, "storageType_compare", value = TRUE)
     }
 
