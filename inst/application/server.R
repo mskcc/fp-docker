@@ -3448,7 +3448,7 @@ function(input, output, session) {
     }
 
     run_path <- selected_run$path[1]
-    file_info <- parseFilePaths(roots = c(current_run = run_path), input$fileInput_pileup)
+    file_info <- shinyFiles::parseFilePaths(roots = c(current_run = run_path), input$fileInput_pileup)
     file_path <- as.character(file_info$datapath)
 
     # Check if file_path is not NULL and has a length greater than 0
