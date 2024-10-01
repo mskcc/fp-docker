@@ -3157,6 +3157,10 @@ function(input, output, session) {
   }
 
 
+  `%||%` <- function(a, b) {
+    if (!is.null(a)) a else b
+  }
+
   observeEvent(input$update_session, {
     # Clean, normalize, and ensure all paths end with a '/'
     personal_storage_path <- normalize_and_update_path("personal_storage_path")
