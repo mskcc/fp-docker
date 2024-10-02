@@ -38,11 +38,11 @@ RUN apt-get install -y inotify-tools
 
 ENV FORCE_REBUILD_R=12
 
-RUN R -e "install.packages(c('Cairo','argparse','gridExtra', 'binom', 'BiocManager', 'diptest', 'egg','shinyWidgets', 'shinyjs', 'rhandsontable', 'doParallel', 'configr', 'R.utils', 'shinyFiles', 'here', 'dplyr'), repos='http://cran.us.r-project.org')" \
+RUN R -e "install.packages(c('Cairo','argparse','gridExtra', 'binom', 'BiocManager', 'diptest', 'egg','shinyWidgets', 'shinyjs', 'rhandsontable', 'doParallel', 'configr', 'R.utils', 'shinyFiles', 'here', 'dplyr', 'httr'), repos='http://cran.us.r-project.org')" \
 	&& R -e "BiocManager::install('rtracklayer')"
 
 # Insert this dummy operation to invalidate the cache for subsequent steps
-ENV FORCE_REBUILD_FACETS=18
+ENV FORCE_REBUILD_FACETS=19
 
 # Install FACETS, pctGCdata and facets-suite
 RUN cd /tmp \

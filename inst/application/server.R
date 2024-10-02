@@ -3803,7 +3803,7 @@ function(input, output, session) {
       file_url <- paste0(base_url, file)
 
       # Try fetching the file from the GitHub URL
-      response <- GET(file_url)
+      response <- httr::GET(file_url)
 
       if (status_code(response) == 200) {
         # If the request was successful, get the content and display it
