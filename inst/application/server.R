@@ -3779,6 +3779,7 @@ function(input, output, session) {
 
 
   # GitHub base URL for the help files
+  library(httr)
   base_url <- "https://raw.githubusercontent.com/mskcc/fp-docker/refs/heads/main/www/help_files/"
 
   # List of available help files on GitHub (you may want to dynamically generate this list in production)
@@ -3805,7 +3806,7 @@ function(input, output, session) {
       # Try fetching the file from the GitHub URL
       response <- httr::GET(file_url)
 
-      if (status_code(response) == 200) {
+      if (httr::status_code(response) == 200) {
         # If the request was successful, get the content and display it
         help_content <- content(response, as = "text", encoding = "UTF-8")
 
