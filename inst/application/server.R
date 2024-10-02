@@ -252,23 +252,28 @@ function(input, output, session) {
 
 
   observeEvent(input$reviewTabsetPanel, {
-   if (input$reviewTabsetPanel == "cBioPortal") {
+    if (input$reviewTabsetPanel == "cBioPortal") {
 
-     selected_sample = paste(unlist(values$manifest_metadata[input$datatable_samples_rows_selected,1]), collapse="")
-     dmp_id = (values$manifest_metadata %>% filter(sample_id == selected_sample))$dmp_id[1]
+      selected_sample <- paste(unlist(values$manifest_metadata[input$datatable_samples_rows_selected, 1]), collapse = "")
+      dmp_id <- (values$manifest_metadata %>% filter(sample_id == selected_sample))$dmp_id[1]
 
-     if (!is.null(dmp_id) && !is.na(dmp_id)) {
-       browseURL(paste0('https://cbioportal.mskcc.org/patient?studyId=mskimpact&caseId=', dmp_id))
-       updateTabsetPanel(session, "reviewTabsetPanel", selected = "png_image_tabset")
-     } else if (grepl('P\\-\\d{7}.*', selected_sample)) {
-       patient_id = gsub("\\-T.*", "", selected_sample)
-       browseURL(paste0('https://cbioportal.mskcc.org/patient?studyId=mskimpact&caseId=', patient_id))
-       updateTabsetPanel(session, "reviewTabsetPanel", selected = "png_image_tabset")
-     } else{
-       showModal(modalDialog( title = "Not a valid DMP ID", "Cannot open this sample in cBioPortal"))
-     }
-   }
+      url <- NULL
+      if (!is.null(dmp_id) && !is.na(dmp_id)) {
+        url <- paste0('https://cbioportal.mskcc.org/patient?studyId=mskimpact&caseId=', dmp_id)
+      } else if (grepl('P\\-\\d{7}.*', selected_sample)) {
+        patient_id <- gsub("\\-T.*", "", selected_sample)
+        url <- paste0('https://cbioportal.mskcc.org/patient?studyId=mskimpact&caseId=', patient_id)
+      } else {
+        showModal(modalDialog(title = "Not a valid DMP ID", "Cannot open this sample in cBioPortal"))
+        return()
+      }
+
+      # Send the URL to the client-side to open in the user's browser
+      session$sendCustomMessage(type = 'openURL', message = url)
+      updateTabsetPanel(session, "reviewTabsetPanel", selected = "png_image_tabset")
+    }
   })
+
 
   observeEvent(input$button_repoSamplesInput, {
 

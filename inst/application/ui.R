@@ -19,6 +19,11 @@ textInputRow<-function (inputId, label, value = "") {
 ui <-
   fluidPage(
    shinyjs::useShinyjs(),
+   tags$script('
+    Shiny.addCustomMessageHandler("openURL", function(url) {
+      window.open(url, "_blank");
+    });
+  '),
    tags$style(HTML("
     .glyphicon-ok-sign {color:#2b8ee5}
     .glyphicon-remove {color:darkred}
@@ -102,6 +107,8 @@ ui <-
 
 
    ,
+
+
     navbarPage(
       "FACETS Preview",
       id="navbarPage1",
