@@ -129,20 +129,6 @@ function(input, output, session) {
       return(NULL)
     }
 
-    ### NOTE: Removing json validation because installing 'jsonvalidate' on juno is a nightmare.
-    ### Need to figure out an alternative or somehow install it.
-    # json_validation_status = jsonvalidate::json_validate(values$config_file,
-    #                                                      system.file("data/config_schema.json", package="facetsPreview"),
-    #                                                      verbose=T)
-    # if (!json_validation_status) {
-    #   showModal(modalDialog( title = "config file parsing error",
-    #                          'likely missing or incorrectly set parameters in config file. check console for error information',
-    #                          easyClose = TRUE))
-    #   print(json_validation_status)
-    #   stop('Error parsing config file')
-    #   stopApp(1)
-    # }
-
     values$config = configr::read.config(values$config_file)
 
     updateSelectInput(session, "selectInput_repo",
@@ -392,10 +378,6 @@ function(input, output, session) {
     manifest_metadata <- load_samples(manifest, progress)
     values$manifest_metadata <- manifest_metadata
 
-    # Debugging: print the manifest
-    #print("MANIFEST")
-    print(manifest)
-
     # Reset submitted refits
     values$submitted_refits <- c()
   })
@@ -573,9 +555,6 @@ function(input, output, session) {
 
     # Check if the file exists; if not, create it
     if (!file.exists(personal_repo_meta_file)) {
-      # File does not exist, create it
-      print("Creating .fp_personal.dat file")
-
       # Initialize an empty data frame with just the headers
       df <- data.frame(
         Remote = character(),
@@ -599,8 +578,6 @@ function(input, output, session) {
     }
     ignore_storage_change(TRUE)
 
-    print("ToggleStorage")
-
     # Get the selected sample path from values$manifest_metadata
     selected_sample_path <- paste(unlist(values$manifest_metadata$path[values$manifest_metadata$sample_id %in% input$selectInput_selectSample]), collapse = "")
 
@@ -610,10 +587,8 @@ function(input, output, session) {
       return()
     }
 
-    #print(selected_sample_path)  # Print the selected sample path for debugging
-
     if (input$storageType) {
-      print("Storage Type is set to Remote")
+      #print("Storage Type is set to Remote")
 
       # Get the personal path using the selected sample path
       personal_path <- get_personal_path(selected_sample_path)
@@ -642,15 +617,7 @@ function(input, output, session) {
           selected_sample <- paste(unlist(values$manifest_metadata[input$datatable_samples_rows_selected, 1]), collapse = "")
           selected_sample_path <- paste(unlist(values$manifest_metadata$path[values$manifest_metadata$sample_id %in% selected_sample]), collapse = "")
 
-          #print("SELECTED IS")
-          #print(selected_sample)
-          #print(selected_sample_path)
-
-          # Optionally, update the select input or handle the sample change
-          # updateSelectInput(session, "selectInput_selectSample", selected = selected_sample)
-          #handleSampleChange()
           if (!skipSampleChange()) {
-            print("NORMAL SAMPLE SELECT")
             handleSampleChange()
           }
         } else {
@@ -661,7 +628,7 @@ function(input, output, session) {
       }
 
     } else {
-      print("Storage Type is set to Personal")
+      #print("Storage Type is set to Personal")
 
       # Get the personal path using the selected sample path
       personal_path <- get_personal_path(selected_sample_path)
@@ -674,8 +641,6 @@ function(input, output, session) {
 
       # Check if the file exists; if not, create it
       if (!file.exists(personal_repo_meta_file)) {
-        # File does not exist, create it
-        print("Creating .fp_personal.dat file")
 
         # Initialize the data frame with the first entry
         df <- data.frame(
@@ -697,7 +662,7 @@ function(input, output, session) {
 
       if (length(existing_row) > 0) {
         # If the personal path exists, update the Remote and Local paths if they have changed
-        print("Personal path exists, updating Remote and Local paths if needed")
+        #print("Personal path exists, updating Remote and Local paths if needed")
 
         # Check if remote_path and selected_sample_path are valid
         if (!is.null(remote_path) && nzchar(remote_path) &&
@@ -706,14 +671,13 @@ function(input, output, session) {
           if (df$Remote[existing_row] != remote_path || df$Local[existing_row] != selected_sample_path) {
             df$Remote[existing_row] <- remote_path
             df$Local[existing_row] <- selected_sample_path
-            print("Updated existing entry in .fp_personal.dat")
+            #print("Updated existing entry in .fp_personal.dat")
           }
         } else {
           print("Error: remote_path or selected_sample_path is invalid.")
         }
       } else {
         # If the personal path does not exist, add a new entry
-        print("Adding new entry to .fp_personal.dat")
 
         new_entry <- data.frame(
           Remote = remote_path,
@@ -735,7 +699,7 @@ function(input, output, session) {
       # Ensure the personal directory exists
       if (!dir.exists(personal_path)) {
         dir.create(personal_path, recursive = TRUE)
-        print(paste("Created directory:", personal_path))  # Debugging message
+        #print(paste("Created directory:", personal_path))  # Debugging message
       }
 
       # Get the list of directories in the personal storage path
@@ -775,14 +739,13 @@ function(input, output, session) {
             }
             incProgress(1 / total_files)
           }
-          print(paste("Copied", files_copied, "new files to:", personal_path))  # Debugging message
+          #print(paste("Copied", files_copied, "new files to:", personal_path))
         } else {
           print("No files to copy.")
         }
       })
 
-      # Print the personal path
-      print(paste("Personal Path:", personal_path))
+      #print(paste("Personal Path:", personal_path))
 
       # Update manifest metadata using the new personal path
       update_manifest_metadata(personal_path)
@@ -795,13 +758,7 @@ function(input, output, session) {
       selected_sample <- paste(unlist(values$manifest_metadata[input$datatable_samples_rows_selected, 1]), collapse = "")
       selected_sample_path <- paste(unlist(values$manifest_metadata$path[values$manifest_metadata$sample_id %in% selected_sample]), collapse = "")
 
-      #print("SELECTED IS")
-      #print(selected_sample)
-      #print(selected_sample_path)
-
-      #handleSampleChange()
       if (!skipSampleChange()) {
-        print("PERSONAL SAMPLE")
         handleSampleChange()
       }
 
@@ -816,7 +773,7 @@ function(input, output, session) {
       return()
     }
     ignore_storage_change_compare(TRUE)
-    print("ToggleStorage2")
+    #print("ToggleStorage2")
 
     # Get the selected sample path from values$manifest_metadata
     selected_sample_path <- paste(unlist(values$manifest_metadata$path[values$manifest_metadata$sample_id %in% input$selectInput_selectSample_compare]), collapse = "")
@@ -827,10 +784,8 @@ function(input, output, session) {
       return()
     }
 
-    print(selected_sample_path)  # Print the selected sample path for debugging
-
     if (input$storageType_compare) {
-      print("Storage Type is set to Remote")
+      #print("Storage Type is set to Remote")
 
       # Get the personal path using the selected sample path
       personal_path <- get_personal_path(selected_sample_path)
@@ -859,13 +814,6 @@ function(input, output, session) {
           selected_sample <- paste(unlist(values$manifest_metadata[input$datatable_samples_rows_selected, 1]), collapse = "")
           selected_sample_path <- paste(unlist(values$manifest_metadata$path[values$manifest_metadata$sample_id %in% selected_sample]), collapse = "")
 
-          #print("SELECTED IS")
-          #print(selected_sample)
-          #print(selected_sample_path)
-
-          # Optionally, update the select input or handle the sample change
-          # updateSelectInput(session, "selectInput_selectSample", selected = selected_sample)
-          #handleSampleChange_compare()
           if (!skipSampleChange()) {
             handleSampleChange_compare()
           }
@@ -877,7 +825,7 @@ function(input, output, session) {
       }
 
     } else {
-      print("Storage Type is set to Personal")
+      #print("Storage Type is set to Personal")
 
       # Get the personal path using the selected sample path
       personal_path <- get_personal_path(selected_sample_path)
@@ -890,8 +838,6 @@ function(input, output, session) {
 
       # Check if the file exists; if not, create it
       if (!file.exists(personal_repo_meta_file)) {
-        # File does not exist, create it
-        print("Creating .fp_personal.dat file")
 
         # Initialize the data frame with the first entry
         df <- data.frame(
@@ -913,7 +859,7 @@ function(input, output, session) {
 
       if (length(existing_row) > 0) {
         # If the personal path exists, update the Remote and Local paths if they have changed
-        print("Personal path exists, updating Remote and Local paths if needed")
+        #print("Personal path exists, updating Remote and Local paths if needed")
 
         # Check if remote_path and selected_sample_path are valid
         if (!is.null(remote_path) && nzchar(remote_path) &&
@@ -922,14 +868,14 @@ function(input, output, session) {
           if (df$Remote[existing_row] != remote_path || df$Local[existing_row] != selected_sample_path) {
             df$Remote[existing_row] <- remote_path
             df$Local[existing_row] <- selected_sample_path
-            print("Updated existing entry in .fp_personal.dat")
+            #print("Updated existing entry in .fp_personal.dat")
           }
         } else {
           print("Error: remote_path or selected_sample_path is invalid.")
         }
       } else {
         # If the personal path does not exist, add a new entry
-        print("Adding new entry to .fp_personal.dat")
+        #print("Adding new entry to .fp_personal.dat")
 
         new_entry <- data.frame(
           Remote = remote_path,
@@ -951,7 +897,7 @@ function(input, output, session) {
       # Ensure the personal directory exists
       if (!dir.exists(personal_path)) {
         dir.create(personal_path, recursive = TRUE)
-        print(paste("Created directory:", personal_path))  # Debugging message
+        #print(paste("Created directory:", personal_path))
       }
 
       # Get the list of directories in the personal storage path
@@ -991,14 +937,13 @@ function(input, output, session) {
             }
             incProgress(1 / total_files)
           }
-          print(paste("Copied", files_copied, "new files to:", personal_path))  # Debugging message
+          #print(paste("Copied", files_copied, "new files to:", personal_path))
         } else {
           print("No files to copy.")
         }
       })
 
-      # Print the personal path
-      print(paste("Personal Path:", personal_path))
+      #print(paste("Personal Path:", personal_path))
 
       # Update manifest metadata using the new personal path
       update_manifest_metadata(personal_path)
@@ -1011,11 +956,6 @@ function(input, output, session) {
       selected_sample <- paste(unlist(values$manifest_metadata[input$datatable_samples_rows_selected, 1]), collapse = "")
       selected_sample_path <- paste(unlist(values$manifest_metadata$path[values$manifest_metadata$sample_id %in% selected_sample]), collapse = "")
 
-      print("SELECTED IS")
-      print(selected_sample)
-      print(selected_sample_path)
-
-      #handleSampleChange_compare()
       if (!skipSampleChange()) {
         handleSampleChange_compare()
       }
@@ -1025,7 +965,7 @@ function(input, output, session) {
 
 
   update_manifest_metadata <- function(personal_path) {
-    print("Updating manifest metadata with personal paths")
+    #print("Updating manifest metadata with personal paths")
 
     # Ensure the .fp_personal.dat file exists
     personal_repo_meta_file <- file.path("~/.fp_personal.dat")
@@ -1056,7 +996,7 @@ function(input, output, session) {
       if (manifest_metadata$path[i] == local_path) {
         # Replace the local path with the personal path
         manifest_metadata$path[i] <- personal_path
-        print(paste("Replaced", local_path, "with", personal_path))
+        #print(paste("Replaced", local_path, "with", personal_path))
       }
     }
 
@@ -1069,7 +1009,7 @@ function(input, output, session) {
 
 
   update_manifest_metadata_to_local <- function(personal_path) {
-    print("Updating manifest metadata with local paths")
+    #print("Updating manifest metadata with local paths")
 
     # Ensure the .fp_personal.dat file exists
     personal_repo_meta_file <- file.path("~/.fp_personal.dat")
@@ -1100,16 +1040,15 @@ function(input, output, session) {
       if (manifest_metadata$path[i] == personal_path) {
         # Replace the personal path with the local path
         manifest_metadata$path[i] <- local_path
-        print(paste("Replaced", personal_path, "with", local_path))
+        #print(paste("Replaced", personal_path, "with", local_path))
       }
     }
 
     # Update the values$manifest_metadata with the modified data
     values$manifest_metadata <- manifest_metadata
 
-    # Print the updated manifest metadata for debugging
-    print("Updated manifest metadata:")
-    print(values$manifest_metadata)
+    #print("Updated manifest metadata:")
+    #print(values$manifest_metadata)
   }
 
 
@@ -1123,31 +1062,15 @@ function(input, output, session) {
 
     skipSampleChange(TRUE)
 
-    #print("^^^^^^^^")
-    #print(input$datatable_samples_rows_selected)
-    #print("^^^^^^^^")
-
     selected_sample = paste(unlist(values$manifest_metadata[input$datatable_samples_rows_selected,1]), collapse="")
     selected_sample_path = paste(unlist(values$manifest_metadata[input$datatable_samples_rows_selected,2]), collapse="")
     selected_sample_num_fits = values$manifest_metadata[input$datatable_samples_rows_selected,4]
-
-    #print("SamplePress")
-
-    #print(selected_sample)
-    #print(selected_sample_path)
-    #print(values$manifest_metadata$sample_id)
-    #print(selected_sample_path)
-    #print("nfit")
-    #print(selected_sample_num_fits)
-    #print(input$datatable_samples_rows_selected)
 
     if (selected_sample_num_fits == 0) {
       showModal(modalDialog( title = "No fits found for this sample",
                              "Path to this sample may be incorrect. " ))
       return(NULL)  # print some kind of error and exit;
     }
-
-
 
     updateNavbarPage(session, "navbarPage1", selected = "tabPanel_reviewFits")
     updateTabsetPanel(session, "reviewTabsetPanel", selected = "png_image_tabset")
@@ -1162,11 +1085,6 @@ function(input, output, session) {
       grepl(local_path, selected_sample_path)
     }), ]
 
-
-    #print("%%%")
-    #print(selected_sample_path)
-    #print(get_remote_path(selected_sample_path))
-    #print("%%%")
 
     #Hide/show refit box when necessary.
     observe({
@@ -1213,11 +1131,6 @@ function(input, output, session) {
       }
     })
 
-    #print("ROW")
-    #print(matched_row)
-    #print(selected_sample_path)
-    #print(is_remote_file(selected_sample_path))
-
     if (nrow(matched_row) > 0) {
       # Check if the remote_path contains "/juno/work/"
       if (any(grepl("/juno/work/", matched_row$remote_path))) {
@@ -1235,15 +1148,9 @@ function(input, output, session) {
       values$sample_runs_compare <- metadata_init(selected_sample, selected_sample_path, progress)
     }
 
-
     output$verbatimTextOutput_runParams <- renderText({})
     output$verbatimTextOutput_runParams_compare <- renderText({})
     output$imageOutput_pngImage1 <- renderImage({ list(src="", width=0, height=0)}, deleteFile=FALSE)
-
-   # if ( is.null(values$sample_runs) || dim(values$sample_runs)[1] == 0) {
-  #    showModal(modalDialog( title = "Unable to read sample", "Either no runs exist for this sample, or, 'sshfs' mount failed." ))
-  #    return(NULL)  # print some kind of error and exit;
-  #  }
 
     # update with review status
     refresh_review_status(selected_sample, selected_sample_path, values$sample_runs)
@@ -1318,9 +1225,7 @@ function(input, output, session) {
     shinyjs::delay(2500, {  # Adding some delay here because if we turn this off too soon the sample input field is still updating and it will double-load data.
       skipSampleChange(FALSE)
     })
-
   })
-
 
 
   observeEvent(input$button_copyClipPath, {
@@ -1345,32 +1250,26 @@ function(input, output, session) {
 
   observeEvent(input$selectInput_selectSample, {
     if (!skipSampleChange()) {
-      print("SelectSample")
       handleSampleChange()
     }
   })
 
 
-
-
   handleSampleChange <- function() {
-    print("ChangeSample")
-    print(skipSampleChange())
 
     selected_sample = paste(unlist(values$manifest_metadata$sample_id[values$manifest_metadata$sample_id %in% input$selectInput_selectSample]), collapse="")
     selected_sample_path = paste(unlist(values$manifest_metadata$path[values$manifest_metadata$sample_id %in% input$selectInput_selectSample]), collapse="")
-    #print(selected_sample)
-    #print(selected_sample_path)
+
 
     if ( is.null(values$sample_runs) || dim(values$sample_runs)[1] == 0) {
       #showModal(modalDialog( title = "Unable to read sample", "Either no runs exist for this sample, or, 'sshfs' mount failed." ))
-      return(NULL)  # print some kind of error and exit;
+      return(NULL)
     }
 
     # Check if .fp_personal.dat file exists
     personal_repo_meta_file <- file.path("~/.fp_personal.dat")
     if (!file.exists(personal_repo_meta_file)) {
-      print(".fp_personal.dat file does not exist.")
+      #print(".fp_personal.dat file does not exist.")
       create_personal_storage_file()
       shinyWidgets::updateSwitchInput(session, "storageType", value = TRUE)
     }
@@ -1383,11 +1282,11 @@ function(input, output, session) {
 
     if (in_personal) {
       # If the path is in the Personal column, set storageType to false
-      print("Sample path is in the Personal column. Setting storageType to false.")
+      #print("Sample path is in the Personal column. Setting storageType to false.")
       shinyWidgets::updateSwitchInput(session, "storageType", value = FALSE)
     } else {
       # If the path is not in the Personal column, set storageType to true
-      print("Sample path is not in the Personal column. Setting storageType to true.")
+      #print("Sample path is not in the Personal column. Setting storageType to true.")
       shinyWidgets::updateSwitchInput(session, "storageType", value = TRUE)
     }
 
@@ -1412,17 +1311,9 @@ function(input, output, session) {
       }
     })
 
-
-
-   # print(values$manifest_metadata)
-    #print(input$selectInput_selectSample)
-
-    #set_default_countFile()
-
     progress <- shiny::Progress$new()
     on.exit(progress$close())
     progress$set(message = "Loading FACETS runs for the selected sample:", value = 0)
-
 
     # Check if we are working on a mounted location.
     mount_df <- get_mount_info()
@@ -1495,11 +1386,8 @@ function(input, output, session) {
 
 
   handleSampleChange_compare <- function() {
-    print("ChangeSample2")
 
-    print(paste("IMPACT Repository Path:", session_data$repository_path_impact))
-
-
+    #print(paste("IMPACT Repository Path:", session_data$repository_path_impact))
 
     if ( is.null(values$sample_runs_compare) || dim(values$sample_runs_compare)[1] == 0) {
       #showModal(modalDialog( title = "Unable to read sample", "Either no runs exist for this sample, or, 'sshfs' mount failed." ))
@@ -1513,7 +1401,7 @@ function(input, output, session) {
     # Check if .fp_personal.dat file exists
     personal_repo_meta_file <- file.path("~/.fp_personal.dat")
     if (!file.exists(personal_repo_meta_file)) {
-      print(".fp_personal.dat file does not exist.")
+      #print(".fp_personal.dat file does not exist.")
       create_personal_storage_file()
       shinyWidgets::updateSwitchInput(session, "storageType_compare", value = TRUE)
     }
@@ -1585,26 +1473,9 @@ function(input, output, session) {
                       choices = as.list(c("Not selected", unlist(values$sample_runs_compare$fit_name))),
                       selected = "Not selected"
     )
-
-    #if (nrow(selected_run) > 0) {
-    #  updateTextInput(session, "textInput_newDipLogR", label = NULL, value = "")
-    #  updateTextInput(session, "textInput_newPurityCval", label = NULL, value = selected_run$purity_run_cval)
-    #  updateTextInput(session, "textInput_newHisensCval", label = NULL, value = selected_run$hisens_run_cval)
-    #  updateTextInput(session, "textInput_newPurityMinNHet", label = NULL, value = selected_run$purity_run_nhet)
-    #  updateTextInput(session, "textInput_newHisensMinNHet", label = NULL, value = selected_run$hisens_run_nhet)
-    #  updateTextInput(session, "textInput_newSnpWindowSize", label = NULL, value = selected_run$purity_run_snp_nbhd)
-    #  updateTextInput(session, "textInput_newNormalDepth", label = NULL, value = selected_run$purity_run_ndepth)
-    #  updateSelectInput(session, "selectInput_newFacetsLib",
-    #                    choices = as.list(values$config$facets_lib$version),
-    #                    selected = selected_run$purity_run_version)
-    #}
   }
 
   observeEvent(input$selectInput_selectFit, {
-
-    print("UpdateInput_SelectFit")
-
-    print(getwd())
 
     output$verbatimTextOutput_runParams <- renderText({})
     output$imageOutput_pngImage1 <- renderImage({ list(src="", width=0, height=0)}, deleteFile=FALSE)
@@ -1759,10 +1630,6 @@ function(input, output, session) {
       shinyjs::hideElement(id="div_bestFitTrophy_compare", anim = TRUE, animType = "fade", time = 0.5)
     }
 
-   # output$verbatimTextOutput_name_of_qc_fit <- renderText({
-   #   paste0(selected_run$fit_name)
-   # })
-
 
     if(input$compareFitsCheck)
     {
@@ -1812,24 +1679,6 @@ function(input, output, session) {
     }
 
 
-  #  output$datatable_QC_metrics <- DT::renderDataTable({
-
-  #    DT::datatable(selected_run %>%
-  #                    select(-ends_with("note")) %>%
-  #                    select(-ends_with("pass")) %>%
-  #                    t,
-  #                  options = list(
-  #                    columnDefs = list(
-  #                      list(targets = "_all", className = 'dt-center')
-  #                    ),
-  #                    pageLength = 200,
-  #                    dom = 't',
-  #                    rownames = FALSE
-  #                  ),
-  #                  colnames = c(""))
-
-  #  })
-
     ## if 'purity' run exists, show it by default; otherwise show the hisens run.
     ## The following piece of code is just a hack to fool the reactive environment to trigger showing
     ## selected run on the first selection
@@ -1851,17 +1700,8 @@ function(input, output, session) {
     }
   })
 
-  #observeEvent(input$dynamic_dipLogR, {
-  #  if (!input$dynamic_dipLogR) {
-  #    updateTextInput(session, "textInput_newDipLogR", value = "")
-  #  }
-  #})
 
   observeEvent(input$textInput_newDipLogR, {
-    # Handle the value update and perform necessary actions
-    # ...
-
-    # Turn off the switch
     shinyWidgets::updateMaterialSwitch(session, "dynamic_dipLogR", value = FALSE)
   })
 
@@ -2087,8 +1927,6 @@ function(input, output, session) {
   })
 
 
-
-
   observeEvent(input$displayOptionsSwitch_geneLevel, {
     if (input$displayOptionsSwitch_geneLevel) {
       # When display options are turned on, show the selected columns div
@@ -2122,24 +1960,12 @@ function(input, output, session) {
   })
 
 
-
-
-
-
-
-
-
-
-
   observeEvent(input$compareFitsCheck, {
     selected_run <- values$sample_runs[which(values$sample_runs$fit_name == paste0(input$selectInput_selectFit)),]
     selected_run_compare <- values$sample_runs_compare[which(values$sample_runs_compare$fit_name == paste0(input$selectInput_selectFit_compare)),]
 
 
     if (input$compareFitsCheck) {
-      print("Checked")
-
-
       output$datatable_QC_flags <- DT::renderDataTable({
         filter_columns = c("homdel_filter", "diploid_seg_filter", "waterfall_filter",
                            "hyper_seg_filter", "high_ploidy_filter", "valid_purity_filter",
@@ -2212,15 +2038,6 @@ function(input, output, session) {
       })
 
 
-
-
-
-
-
-
-
-
-
       output$datatable_armLevel <- DT::renderDataTable({
         data <- processed_armLevel_data()
 
@@ -2290,8 +2107,6 @@ function(input, output, session) {
       updateCloseups()
 
     } else {
-      print("Off")
-
 
         output$datatable_QC_flags <- DT::renderDataTable({
           filter_columns = c("homdel_filter", "diploid_seg_filter", "waterfall_filter",
@@ -2463,10 +2278,6 @@ function(input, output, session) {
   })
 
 
-
-
-
-
   observeEvent(input$use_remote_refit_switch, {
     if (input$use_remote_refit_switch) {
       shinyjs::show("remote_refit_options", anim = TRUE, animType = "slide")
@@ -2565,8 +2376,6 @@ function(input, output, session) {
   })
 
   observeEvent(input$radioGroupButton_fitType, {
-
-    #print("Radio")
 
     if (input$selectInput_selectFit == "Not selected") {
       return(NULL)
@@ -2709,12 +2518,6 @@ function(input, output, session) {
 
   observeEvent(input$radioGroupButton_fitType_compare, {
 
-    #print("Radio2")
-
-    #if(!input$compareFitsCheck) {
-    #  return(NULL)
-    #}
-
     if (input$selectInput_selectFit_compare == "Not selected") {
       return(NULL)
     }
@@ -2856,13 +2659,8 @@ function(input, output, session) {
     },
     deleteFile = FALSE)
 
-    #output$plotOutput_closeup <- renderPlot ({
-    #  list(src="", width=0, height=0)
-    #})
     updateCloseups()
   })
-
-
 
 
   observeEvent(input$button_saveChanges, {
@@ -2894,16 +2692,10 @@ function(input, output, session) {
 
 
   observeEvent(input$button_closeUpView, {
-
-    #print("CloseUp!")
-
     updateCloseups();
-
   })
 
   updateCloseups <- function() {
-
-    #print("CloseUp!")
 
     if (input$selectInput_selectFit == "Not selected") {
       output$verbatimTextOutput_runParams <- renderText({})
@@ -2971,8 +2763,6 @@ function(input, output, session) {
                        ":", closeup_output1$start,
                        "-", closeup_output1$end)
         )
-
-
 
         # Create the plot for Dataset 2
         plot2 <- gridExtra::grid.arrange(
@@ -3179,7 +2969,7 @@ function(input, output, session) {
       }
     }
 
-    print(mount_df)
+    #print(mount_df)
     return(mount_df)
   }
 
@@ -3272,7 +3062,7 @@ function(input, output, session) {
           shinyWidgets::updateSwitchInput(session, switch_id, value = TRUE)
           updateTextInput(session, remote_path_id, value = mount_df$remote_path[i])
           session_data[[session_remote_path]] <- mount_df$remote_path[i]
-          print(paste("MATCHES", mount_df$remote_path[i]))
+          #print(paste("MATCHES", mount_df$remote_path[i]))
           return(TRUE)
         }
       }
@@ -3341,13 +3131,6 @@ function(input, output, session) {
       # Get the mount information
       juno_lines <- get_mount_info()
 
-      # Print the lines containing "/juno/work/"
-      if (length(juno_lines) > 0) {
-        print("Mount paths containing '/juno/work/':")
-        print(juno_lines)
-      } else {
-        print("No mount paths containing '/juno/work/' found.")
-      }
     }
 
 
@@ -3358,15 +3141,15 @@ function(input, output, session) {
       if (session_data$auth_password == valid_hashed_password) {
         session_data$password_valid <- 1
         showNotification("Authenticated for full access.", type = "message")
-        print("match")
+        #print("match")
       } else {
         session_data$password_valid <- 0
-        print("not match")
+        #print("not match")
       }
       if (session_data$auth_password == valid_personal_password) {
         session_data$password_personal <- 1
         showNotification("Authenticated for personal refits.", type = "message")
-        print("match")
+        #print("match")
       } else {
         session_data$password_personal <- 0
       }
@@ -3380,7 +3163,7 @@ function(input, output, session) {
     }
 
     # Print all values to the console for debugging
-    print(session_data)
+    #print(session_data)
 
   })
 
@@ -3411,10 +3194,6 @@ function(input, output, session) {
       shinyjs::hide("create_folder_button_container")
     }
   })
-
-
-
-
 
 
   set_default_countFile <- function() {
@@ -3458,18 +3237,15 @@ function(input, output, session) {
     }
 
     run_path <- selected_run$path[1]  # Get the first path
-    print(run_path)
 
     # Set up shinyFileChoose with the current run path as the root
     shinyFiles::shinyFileChoose(input, "fileInput_pileup", roots = c(current_run = run_path), session = session)
 
     # Parse the file path selected by the user
     file_info <- shinyFiles::parseFilePaths(roots = c(current_run = run_path), input$fileInput_pileup)
-    print(file_info)
 
     # Extract the file path as a character string
     file_path <- as.character(file_info$datapath)
-    print(file_path)
 
     # Check if file_path is valid and update the reactive value
     if (!is.null(file_path) && length(file_path) > 0 && file_path != "") {
@@ -3477,8 +3253,6 @@ function(input, output, session) {
       showNotification(paste("Selected counts file is", selected_counts_file()), type = "message")
     }
   })
-
-
 
 
   observeEvent(input$create_folder_button, {
@@ -3602,7 +3376,6 @@ function(input, output, session) {
       shinyWidgets::updateSwitchInput(session, "session_switch_tcga", value = FALSE)
     }
   })
-
 
 
   observeEvent(input$button_impactSamplesInput, {
@@ -3947,41 +3720,7 @@ function(input, output, session) {
       counts_file_name = selected_counts_file()
     }
 
-    #if (!is.null(values$selected_repo)) {
-    #  counts_file_name = glue(paste0("{run_path}/",values$selected_repo$counts_file_format))
-    #}
-
-   # if (!file.exists(counts_file_name)) {
-      # try alternate counts file; tempo format; eg: SU2LC_MSK_1365_T__SU2LC_MSK_1365_N.snp_pileup.gz
-    #  if (file.exists(glue("{run_path}/{sample_id}.snp_pileup.gz"))) {
-    #    counts_file_name = glue("{run_path}/{sample_id}.snp_pileup.gz")
-    #  } else {
-    #    showModal(modalDialog( title = "Not submitted", paste0("Counts file does not exist: ", counts_file_name) ))
-    #    return(NULL)
-    #  }
-    #}
-
     refit_cmd_file <- glue("{cmd_script_pfx}{sample_id}_{name_tag}.sh")
-    #if (file.size(counts_file_name) > 5e7) {
-    #  refit_cmd_file <- glue("{cmd_script_pfx}{sample_id}_{name_tag}.bsub.sh")
-    #}
-
-    #if (any(values$submitted_refit == refit_dir)) {
-    #  showModal(modalDialog(
-    #    title = "Not submitted", paste0("Job already queued. Check logs: ", refit_cmd_file, ".*")
-    #  ))
-    #  return(NULL)
-    #}
-
-    ## check if the user has permissions to write to that directory
-    #if (!has_permissions_to_write(refit_dir)) {
-    #  showModal(modalDialog(
-    #    title = "Not submitted",
-    #    paste0("Unable to create refit directory. Check if you have permissions to write to: ", refit_dir)
-    #  ))
-    #  return(NULL)
-    #}
-
 
     refit_cmd = glue(paste0('{values$config$r_script_path}  ',
                            '{values$config$facets_suite_run_wrapper} ',
@@ -4026,22 +3765,9 @@ function(input, output, session) {
       }
       refit_dir <- paste0(run_path, refit_name)
 
-      #print(counts_file_name)
-      #print(".10")
-      #print(refit_dir)
-      #print(".11")
-
       #Build our command for submitting to bsub.
       counts_file_name = get_remote_path(counts_file_name)
-      #print("REFIT5.10")
       refit_dir_remote = get_remote_path(refit_dir)
-      #print("REFIT5.12")
-      #print(refit_dir_remote)
-
-      #print(counts_file_name)
-      #print(refit_dir_remote)
-      #print("REFIT5.1")
-
 
       refit_cmd = glue(paste0('/opt/common/CentOS_7/R/R-3.6.3/bin/Rscript  ',
                               '{input$remote_refit_path}lib/facets-suite-2.0.8/run-facets-wrapper.R ',
@@ -4074,14 +3800,7 @@ function(input, output, session) {
       writeLines(refit_cmd, con = output_file_path)
     }
 
-
-    print("REFITCMD:")
     print(refit_cmd)
-    print("_______")
-
-    #return(NULL)
-
-    #write(refit_cmd, refit_cmd_file)
 
     showModal(modalDialog(
       title = "Job submitted!",
@@ -4090,16 +3809,11 @@ function(input, output, session) {
     ))
     values$submitted_refit <- c(values$submitted_refit, refit_dir)
 
-    #test_cmd <- "/usr/local/bin/Rscript /usr/bin/facets-suite/run-facets-wrapper.R --help"
-    #system(test_cmd, intern = TRUE)
-
     if (!input$use_remote_refit_switch) {
       system(refit_cmd, intern = TRUE)
     }
 
     selected_counts_file()
-
-
   })
 
 }

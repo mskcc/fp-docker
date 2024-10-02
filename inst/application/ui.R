@@ -102,13 +102,7 @@ ui <-
         });
     });
 "))
-
-
-
-
    ,
-
-
     navbarPage(
       "FACETS Preview",
       id="navbarPage1",
