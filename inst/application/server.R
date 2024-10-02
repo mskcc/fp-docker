@@ -4012,6 +4012,7 @@ function(input, output, session) {
         return(NULL)
       }
 
+      counts_file_name = selected_counts_file()
       if(is.null(counts_file_name))
       {
         set_default_countFile()
