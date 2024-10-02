@@ -4026,7 +4026,7 @@ function(input, output, session) {
       #print(".11")
 
       #Build our command for submitting to bsub.
-      counts_file_name = get_remote_path(counts_file_name())
+      counts_file_name = get_remote_path(counts_file_name)
       #print("REFIT5.10")
       refit_dir_remote = get_remote_path(refit_dir)
       #print("REFIT5.12")
