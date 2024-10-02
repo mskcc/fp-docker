@@ -4016,8 +4016,7 @@ function(input, output, session) {
       if(is.null(counts_file_name))
       {
         set_default_countFile()
-        counts_file_name = selected_counts_file
-
+        counts_file_name = selected_counts_file()
       }
       refit_dir <- paste0(run_path, refit_name)
 
